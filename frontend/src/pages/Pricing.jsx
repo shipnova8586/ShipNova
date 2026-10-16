@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check } from 'lucide-react';
+import { Check, CheckCircle2, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
@@ -18,6 +18,13 @@ const loadRazorpay = () => {
 
 const Pricing = () => {
   const [isYearly, setIsYearly] = useState(true);
+  const [paymentModal, setPaymentModal] = useState({
+    show: false,
+    status: 'success', // 'success' | 'error'
+    title: '',
+    message: '',
+    planName: ''
+  });
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -67,7 +74,12 @@ const Pricing = () => {
 
     const res = await loadRazorpay();
     if (!res) {
-      alert('Razorpay SDK failed to load. Check your connection.');
+      setPaymentModal({
+        show: true,
+        status: 'error',
+        title: 'Connection Error',
+        message: 'Razorpay SDK failed to load. Please check your internet connection and try again.'
+      });
       return;
     }
 
@@ -96,7 +108,12 @@ const Pricing = () => {
       const data = await result.json();
 
       if (!data.success) {
-        alert('Server error while creating order.');
+        setPaymentModal({
+          show: true,
+          status: 'error',
+          title: 'Order Creation Failed',
+          message: data.message || 'Server error while creating order. Please try again.'
+        });
         return;
       }
 
@@ -125,10 +142,23 @@ const Pricing = () => {
           });
           const verifyData = await verifyRes.json();
           if (verifyData.success) {
-            alert(`✅ Payment Successful!\nPlan upgraded to ${plan.name}.\nRedirecting to Dashboard...`);
-            window.location.href = '/dashboard'; // Hard reload to re-sync updated company plan from backend
+            setPaymentModal({
+              show: true,
+              status: 'success',
+              title: 'Payment Successful!',
+              planName: plan.name,
+              message: `Your company subscription has been successfully upgraded to ${plan.name}. Unlocking your Network features now...`
+            });
+            setTimeout(() => {
+              window.location.href = '/dashboard'; // Hard reload to re-sync updated company plan from backend
+            }, 3200);
           } else {
-            alert('❌ Payment verification failed!');
+            setPaymentModal({
+              show: true,
+              status: 'error',
+              title: 'Verification Failed',
+              message: verifyData.message || 'Payment signature verification failed. Please contact support.'
+            });
           }
         },
         prefill: {
@@ -143,7 +173,12 @@ const Pricing = () => {
 
     } catch (error) {
       console.error(error);
-      alert('Something went wrong!');
+      setPaymentModal({
+        show: true,
+        status: 'error',
+        title: 'Payment Error',
+        message: 'Something went wrong during checkout. Please try again.'
+      });
     }
   };
 
@@ -279,6 +314,74 @@ const Pricing = () => {
           </motion.div>
         ))}
       </div>
+
+      {/* ── Ultra-Modern Glassmorphic Payment Status Modal ── */}
+      {paymentModal.show && (
+        <div className="payment-modal-overlay">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.85, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className={`payment-modal-card ${paymentModal.status}`}
+          >
+            {/* Glow orb */}
+            <div className={`modal-glow-orb ${paymentModal.status}`} />
+
+            {/* Icon */}
+            <div className={`modal-icon-container ${paymentModal.status}`}>
+              {paymentModal.status === 'success' ? (
+                <CheckCircle2 size={44} className="modal-icon-success" />
+              ) : (
+                <AlertCircle size={44} className="modal-icon-error" />
+              )}
+            </div>
+
+            {/* Badge */}
+            <div className={`modal-badge ${paymentModal.status}`}>
+              {paymentModal.status === 'success' ? (
+                <>
+                  <Sparkles size={14} />
+                  <span>TRANSACTION VERIFIED</span>
+                </>
+              ) : (
+                <span>ACTION REQUIRED</span>
+              )}
+            </div>
+
+            {/* Title & Plan */}
+            <h3 className="modal-title">{paymentModal.title}</h3>
+            {paymentModal.planName && (
+              <div className="modal-plan-tag">{paymentModal.planName}</div>
+            )}
+            <p className="modal-description">{paymentModal.message}</p>
+
+            {/* Action buttons / progress bar */}
+            {paymentModal.status === 'success' ? (
+              <div className="modal-action-wrapper">
+                <div className="modal-progress-bar">
+                  <div className="modal-progress-fill" />
+                </div>
+                <button 
+                  onClick={() => { window.location.href = '/dashboard'; }}
+                  className="modal-btn-primary"
+                >
+                  <span>Go to Dashboard Now</span>
+                  <ArrowRight size={18} />
+                </button>
+              </div>
+            ) : (
+              <div className="modal-action-wrapper">
+                <button 
+                  onClick={() => setPaymentModal({ ...paymentModal, show: false })}
+                  className="modal-btn-error"
+                >
+                  Close & Try Again
+                </button>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

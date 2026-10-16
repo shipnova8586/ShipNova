@@ -262,3 +262,197 @@
     align-items: center;
   }
 }
+
+/* ── Ultra-Modern Glassmorphic Payment Modal ── */
+.payment-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 7, 18, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 20px;
+}
+
+.payment-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  background: linear-gradient(145deg, rgba(17, 24, 39, 0.95), rgba(9, 14, 26, 0.98));
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 28px;
+  padding: 40px 32px 32px;
+  text-align: center;
+  overflow: hidden;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 50px rgba(16, 185, 129, 0.15);
+}
+
+.payment-modal-card.error {
+  border-color: rgba(239, 68, 68, 0.35);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 50px rgba(239, 68, 68, 0.15);
+}
+
+.modal-glow-orb {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, transparent 70%);
+  filter: blur(35px);
+  pointer-events: none;
+}
+
+.modal-glow-orb.error {
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.35) 0%, transparent 70%);
+}
+
+.modal-icon-container {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 95, 70, 0.45));
+  border: 2px solid rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.35);
+}
+
+.modal-icon-container.error {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(153, 27, 27, 0.45));
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.35);
+}
+
+.modal-icon-success {
+  color: #10b981;
+  filter: drop-shadow(0 0 8px #10b981);
+}
+
+.modal-icon-error {
+  color: #ef4444;
+  filter: drop-shadow(0 0 8px #ef4444);
+}
+
+.modal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.modal-badge.error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.modal-title {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.modal-plan-tag {
+  display: inline-block;
+  padding: 4px 16px;
+  margin-bottom: 14px;
+  background: linear-gradient(90deg, rgba(0, 229, 255, 0.15), rgba(79, 70, 229, 0.2));
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  border-radius: 8px;
+  color: #00e5ff;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.modal-description {
+  color: #94a3b8;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0 0 26px;
+}
+
+.modal-action-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.modal-progress-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #10b981, #00e5ff);
+  animation: progressFill 3.2s linear forwards;
+}
+
+@keyframes progressFill {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+.modal-btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 24px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+}
+
+.modal-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.5);
+  filter: brightness(1.1);
+}
+
+.modal-btn-error {
+  width: 100%;
+  padding: 14px 24px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.modal-btn-error:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
