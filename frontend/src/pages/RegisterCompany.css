@@ -1,0 +1,83 @@
+.register-company-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, #0f1729 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.register-company-card {
+  width: 100%;
+  max-width: 600px;
+  padding: 48px !important;
+}
+
+.rc-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.rc-logo {
+  color: var(--primary);
+  margin-bottom: 16px;
+}
+
+.rc-header h1 {
+  font-size: 1.8rem;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, var(--primary), var(--info));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.rc-header p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.rc-section-title {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.rc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 580px) {
+  .rc-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rc-submit-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 1rem;
+}
+
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 16px;
+  color: var(--text-muted);
+}
+
+.input-with-icon .form-input {
+  width: 100%;
+  padding-left: 48px;
+}

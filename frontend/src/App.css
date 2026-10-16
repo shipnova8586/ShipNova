@@ -1,0 +1,64 @@
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+}
+
+.app-content-wrapper {
+  flex-grow: 1;
+  padding-left: 260px;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main-body {
+  flex-grow: 1;
+  background-color: var(--bg-primary);
+}
+
+/* Clerk Auth Page Wrapper */
+.clerk-auth-wrapper {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, #0f1729 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 32px;
+}
+
+.clerk-brand {
+  text-align: center;
+}
+
+.clerk-logo-text {
+  font-family: var(--font-heading);
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #4f46e5, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.clerk-brand p {
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-size: 0.9rem;
+}
+
+/* Override some Clerk component styles to match our dark theme */
+.cl-card {
+  background-color: #151b2c !important;
+  border: 1px solid #243049 !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4) !important;
+}
+
+.cl-formButtonPrimary {
+  background-color: #4f46e5 !important;
+}
+
+.cl-formButtonPrimary:hover {
+  background-color: #4338ca !important;
+}

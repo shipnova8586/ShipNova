@@ -1,0 +1,305 @@
+/* Reset / Base for Contact Page */
+.contact-page {
+  background-color: #ffffff; /* The main page background is white now */
+  color: var(--sn-dark);
+}
+
+/* Banner Section */
+.contact-banner-section {
+  background-color: var(--sn-dark); /* Dark blue banner fallback */
+  background-image: linear-gradient(rgba(11, 23, 61, 0.75), rgba(11, 23, 61, 0.9)), url("https://cdn.prod.website-files.com/69550c0d31b345c8a002ac3d/6957a439c661f001b1889221_contact-banner-image.jpg");
+  background-size: cover;
+  background-position: center;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  border-bottom-left-radius: 80px;
+  border-bottom-right-radius: 80px;
+  padding: 120px 20px 80px; /* Standard padding */
+  z-index: 1;
+}
+
+.contact-banner-container {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+/* Allow enough width for the text to sit on exactly the right number of lines */
+.contact-banner-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.banner-title-wrap {
+  margin-bottom: 40px; /* Further increased gap to push the title upwards */
+}
+
+.banner-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 4rem; /* Desktop size */
+  font-weight: 500; /* Medium weight to look much less broad and more minimal */
+  color: #FFFFFF;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.sub-banner-content-wrap {
+  width: 100%;
+}
+
+.text-white {
+  color: #FFFFFFE6;
+  font-size: 14px; /* Reduced from 16px as requested */
+  line-height: 1.6;
+  margin: 0 0 12px 0; /* Exact margin from DevTools */
+}
+
+/* Main Contact Section (White Background) */
+.contact-main-section {
+  background-color: #ffffff;
+  padding: 100px 20px;
+  position: relative;
+  z-index: 2;
+}
+
+.contact-container {
+  max-width: 1005px;
+  margin: 0 auto;
+}
+
+.contact-info-grid {
+  display: grid;
+  grid-template-columns: max-content max-content; /* Sits exactly to the width of the content */
+  justify-content: center; /* Centers both columns in the middle of the screen like the reference */
+  gap: 80px; /* Large gap matching the reference */
+  margin-bottom: 80px;
+}
+
+.contact-section-title {
+  font-family: var(--font-heading); /* Reverted to Outfit to match reference */
+  font-size: 2.3rem; /* Slightly reduced to match reference */
+  font-weight: 700; /* Reduced from 800 to fix glitchy/squished heavy look */
+  color: var(--sn-dark);
+  line-height: 1.25; /* Increased from 1.1 for better vertical breathing room */
+  letter-spacing: 0.5px; /* Reverted to normal spacing */
+  word-spacing: 8px; /* Added space between WORDS as requested */
+  margin-bottom: 20px;
+}
+
+.text-primary {
+  color: var(--sn-dark);
+  font-size: 0.9rem; /* Reduced from 1rem to make it smaller as requested */
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+/* Contact Items (Right Column) */
+.contact-info-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* Reduced gap to bring pills closer */
+}
+
+.contact-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between; /* Reverted to space-between to push links to the right edge like the reference */
+  padding: 8px 24px; /* Reduced vertical padding to 8px as requested */
+  border: 1px solid #e1e5ea;
+  border-radius: 50px;
+  background-color: #ffffff;
+  width: 100%; /* Removed hardcoded pixel width so it perfectly fits the text + padding */
+  max-width: 100%; /* For mobile screens */
+  gap: 8px; /* Minimum gap */
+}
+
+.contact-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Reduced gap between icon and email to save space */
+}
+
+.contact-icon-wrap {
+  width: 20px; /* Reduced from 40px */
+  height: 20px; /* Reduced from 40px so it doesn't inflate box height */
+  background-color: transparent; /* Removed cyan background */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.contact-icon-wrap img {
+  width: 20px;
+  height: 20px;
+}
+
+.contact-item-value {
+  font-size: 1rem; /* Increased back to 1rem to match reference */
+  font-weight: 600; /* Set exactly to 600 as requested */
+  color: var(--sn-dark);
+}
+
+.contact-item-link {
+  color: var(--sn-cyan);
+  font-weight: 600;
+  font-size: 1rem; /* Increased to 1rem to match reference */
+  text-decoration: underline !important; /* Added !important to force underline */
+  transition: all 0.3s ease;
+  white-space: nowrap; /* Forces text to stay on one line */
+}
+
+.contact-item-link:hover {
+  opacity: 0.8;
+}
+
+.address-span {
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+.contact-item-link {
+  color: var(--sn-cyan);
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 55px; /* align with text */
+  transition: opacity 0.3s ease;
+}
+
+.contact-item-link:hover {
+  opacity: 0.8;
+}
+
+/* Form Area */
+.contact-form-area {
+  width: 100%;
+}
+
+.contact-form-block {
+  background-color: #ffffff;
+  padding: 50px; /* Added padding to give space inside the border */
+  border: 2px solid var(--sn-cyan); /* Thicker cyan border */
+  border-radius: 20px; /* Large rounded corners */
+}
+
+.contact-form-top-wrap {
+  margin-bottom: 40px;
+}
+
+.contact-form-title {
+  font-family: 'Montserrat', sans-serif; /* Cleaner, narrower font */
+  font-size: 1.5rem; /* Exactly 1.5rem as requested */
+  font-weight: 700; /* Increased from 600 as requested */
+  color: var(--sn-dark);
+  margin-bottom: 20px; /* Slightly larger gap before paragraph */
+}
+
+.contact-form-text {
+  font-size: 0.735rem; /* Exactly 0.735rem as requested */
+  font-weight: 500; /* Increased to medium weight */
+  color: var(--sn-dark); /* Solid dark blue, no opacity */
+  line-height: 1.6;
+}
+
+/* Form Fields */
+.real-contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* Reduced from 20px for a tighter layout */
+}
+
+.form-field-row {
+  display: flex;
+  gap: 16px; /* Reduced from 20px */
+}
+
+.real-input {
+  width: 100%;
+  padding: 12px 20px; /* Reduced padding to make the box shorter/slimmer */
+  background-color: #ffffff; /* White background */
+  border: 1px solid #e1e5ea;
+  border-radius: 50px; /* Pill shape */
+  font-size: 0.95rem; /* Slightly smaller text */
+  color: var(--sn-dark);
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.real-input:focus {
+  outline: none;
+  border-color: var(--sn-cyan);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 196, 255, 0.1);
+}
+
+.real-input::placeholder {
+  color: #8c97a5;
+  font-weight: 500;
+}
+
+.real-textarea {
+  min-height: 150px;
+  resize: vertical;
+  border-radius: 20px; /* Rounded rectangle instead of pill for textarea */
+}
+
+.form-bottom-text {
+  font-size: 0.74rem; /* Adjusted to 0.74rem as requested */
+  color: #475569; /* Made it even darker */
+  margin-top: 0px; /* Reduced to move the text up */
+  line-height: 1.5;
+  font-style: italic; /* Made it inclined */
+}
+
+/* Submit Button */
+.contact-button-wrap {
+  margin-top: 20px;
+}
+
+.white-button {
+  background-color: #ffffff;
+  color: var(--sn-dark);
+  border: 2px solid var(--sn-cyan); /* Thicker border */
+  padding: 10px 24px; /* Further reduced padding for a smaller button */
+  font-size: 0.85rem; /* Smaller text */
+  font-weight: 700;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.white-button:hover {
+  transform: scale(0.97); /* Restored shrink effect */
+  opacity: 0.9;
+}
+
+/* Responsive */
+@media screen and (max-width: 991px) {
+  .contact-info-grid {
+    grid-template-columns: 1fr;
+    justify-content: stretch; /* Stretch on mobile */
+    gap: 40px;
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .banner-title {
+    font-size: 2.5rem;
+  }
+  
+  .form-field-row {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .contact-section-title {
+    font-size: 2rem;
+  }
+}

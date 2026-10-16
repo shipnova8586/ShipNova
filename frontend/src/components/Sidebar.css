@@ -1,0 +1,395 @@
+.sidebar {
+  width: 260px;
+  height: calc(100vh - 32px); /* Leave gap at top and bottom */
+  margin: 16px; /* Floating gap */
+  border-radius: var(--radius-xl);
+  position: fixed;
+  left: 0;
+  top: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.12); /* Slightly brighter edge */
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  z-index: 100;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+  overflow: visible; /* Allow dropdown to render above sidebar bounds */
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  margin-top: 0px;
+}
+
+/* Elegant Gradient Divider for Sidebar */
+.sidebar-divider {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  margin-bottom: 16px;
+}
+
+.logo-icon {
+  color: var(--primary);
+}
+
+.logo-text {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--primary), var(--info));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-grow: 1;
+}
+
+
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all var(--transition-fast);
+}
+
+.nav-item:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-tertiary);
+  transform: translateX(4px);
+}
+
+.nav-item.active {
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.8), rgba(99, 102, 241, 0.6));
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 20px rgba(79, 70, 229, 0.3), inset 0 0 10px rgba(139, 92, 246, 0.2);
+  transform: translateX(4px);
+}
+
+.nav-item.active svg {
+  color: white;
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+}
+
+.sidebar-footer {
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+/* ── SaaS Network / Marketplace Styles ── */
+.sidebar-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  margin-bottom: 8px;
+  padding: 0 16px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  letter-spacing: 0.1em;
+}
+
+.premium-badge {
+  background: linear-gradient(135deg, #00e5ff, #00b3cc);
+  color: #000;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.locked-feature {
+  opacity: 0.6;
+  cursor: not-allowed;
+  position: relative;
+}
+
+.locked-feature:hover {
+  opacity: 0.8;
+  background-color: rgba(255, 255, 255, 0.03);
+  transform: none;
+}
+
+.lock-icon {
+  margin-left: auto;
+  color: var(--text-tertiary);
+}
+
+.sidebar-user-btn:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.sidebar-signout-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* ════════════════════════════════════════
+   CUSTOM USER MENU DROPDOWN
+════════════════════════════════════════ */
+
+.user-menu-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* ── Trigger Button ── */
+.user-menu-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.user-menu-trigger:hover,
+.user-menu-trigger.open {
+  background: rgba(79, 70, 229, 0.12);
+  border-color: rgba(79, 70, 229, 0.35);
+  box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.2);
+}
+
+/* ── Avatar (shared) ── */
+.user-menu-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f46e5, #06b6d4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: 0.05em;
+  box-shadow: 0 0 12px rgba(79, 70, 229, 0.4);
+}
+
+/* ── Trigger Info ── */
+.user-menu-trigger-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.trigger-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trigger-plan {
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.trigger-plan.plan-core {
+  color: var(--text-secondary);
+}
+
+.trigger-plan.plan-network {
+  color: #00e5ff;
+}
+
+.trigger-chevron {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* ── Dropdown Panel ── */
+.user-menu-dropdown {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  padding: 8px;
+  box-shadow:
+    0 -10px 40px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(79, 70, 229, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  z-index: 9999;
+  animation: menuSlideUp 0.18s ease;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+@keyframes menuSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Dropdown Header ── */
+.user-menu-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 8px;
+}
+
+.user-menu-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.user-menu-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-menu-email {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+/* ── Company Row ── */
+.user-menu-company {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 10px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+}
+
+.user-menu-company span:first-of-type {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Plan Badges ── */
+.user-menu-plan-badge {
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.user-menu-plan-badge.plan-core {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.user-menu-plan-badge.plan-network {
+  background: linear-gradient(135deg, #00e5ff22, #00b3cc22);
+  color: #00e5ff;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+}
+
+/* ── Divider ── */
+.user-menu-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  margin: 4px 0;
+}
+
+/* ── Menu Items ── */
+.user-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.user-menu-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  transform: translateX(2px);
+}
+
+/* Upgrade button — special styling */
+.user-menu-item.upgrade {
+  color: #fbbf24;
+}
+
+.user-menu-item.upgrade:hover {
+  background: rgba(251, 191, 36, 0.08);
+  color: #fde68a;
+}
+
+/* Sign out button — danger red */
+.user-menu-item.signout {
+  color: #f87171;
+}
+
+.user-menu-item.signout:hover {
+  background: rgba(239, 68, 68, 0.08);
+  color: #fca5a5;
+}
+
