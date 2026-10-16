@@ -13,7 +13,12 @@ const DriverLayout = () => {
 
   useEffect(() => {
     if (driverId) {
-      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+      const envSocketUrl = import.meta.env.VITE_SOCKET_URL;
+      const socketUrl = (envSocketUrl && !envSocketUrl.includes('<') && !envSocketUrl.includes('AAPKA'))
+        ? envSocketUrl
+        : (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+            ? 'http://localhost:5000'
+            : 'https://shipnova-backend-nrwn.onrender.com');
       const socket = io(socketUrl);
       
       socket.on('connect', () => {

@@ -74,7 +74,12 @@ const Pricing = () => {
     // Convert USD to INR for testing (e.g. 1 USD = 80 INR)
     const amountInINR = (isYearly ? plan.yearlyPrice : plan.monthlyPrice) * 80;
 
-    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const envApiUrl = import.meta.env.VITE_API_URL;
+    const API_BASE = (envApiUrl && !envApiUrl.includes('<') && !envApiUrl.includes('AAPKA'))
+      ? envApiUrl
+      : (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+          ? 'http://localhost:5000/api'
+          : 'https://shipnova-backend-nrwn.onrender.com/api');
 
     try {
       // 1. Create order on our backend

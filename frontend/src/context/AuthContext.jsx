@@ -16,9 +16,14 @@ export const AuthProvider = ({ children }) => {
   const { signOut } = useClerkAuth();
 
   // Set API base URL and timeout
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const envApiUrl = import.meta.env.VITE_API_URL;
+  const API_URL = (envApiUrl && !envApiUrl.includes('<') && !envApiUrl.includes('AAPKA'))
+    ? envApiUrl
+    : (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+        ? 'http://localhost:5000/api'
+        : 'https://shipnova-backend-nrwn.onrender.com/api');
   axios.defaults.baseURL = API_URL;
-  axios.defaults.timeout = 8000;
+  axios.defaults.timeout = 15000;
 
   // When Clerk user state changes, sync with our backend
   useEffect(() => {
