@@ -62,12 +62,12 @@ export default async function handler(req, res) {
       html: `
         <div style="font-family: Arial, sans-serif; padding: 25px; color: #e2e8f0; background-color: #0b0f19; max-width: 620px; border: 1px solid #1f2937; border-radius: 12px; margin: 0 auto;">
           <div style="margin-bottom: 25px; text-align: center;">
-            <img src="${logoUrl}" alt="ShipNova" style="height: 85px; max-width: 260px; display: inline-block;" />
+            <img src="${logoUrl}" alt="ShipNova" style="height: 125px; max-width: 270px; width: auto; display: inline-block;" />
           </div>
           <h2 style="color: #ffffff; margin-top: 0; border-bottom: 2px solid #4f46e5; padding-bottom: 12px; font-size: 20px;">New Quote Request</h2>
           
           <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 15px;">
-            <tr><td style="padding: 10px 15px 10px 0; border-bottom: 1px solid #1f2937; color: #94a3b8; width: 140px;"><strong>Client Name:</strong></td><td style="padding: 10px 0; border-bottom: 1px solid #1f2937; color: #ffffff;">${fullName}</td></tr>
+            <tr><td style="padding: 10px 15px 10px 0; border-bottom: 1px solid #1f2937; color: #ffffff; width: 140px;"><strong>Name:</strong></td><td style="padding: 10px 0; border-bottom: 1px solid #1f2937; color: #ffffff;">${fullName}</td></tr>
             <tr><td style="padding: 10px 15px 10px 0; border-bottom: 1px solid #1f2937; color: #94a3b8;"><strong>Company:</strong></td><td style="padding: 10px 0; border-bottom: 1px solid #1f2937; color: #ffffff;">${companyName}</td></tr>
             <tr><td style="padding: 10px 15px 10px 0; border-bottom: 1px solid #1f2937; color: #94a3b8;"><strong>Email:</strong></td><td style="padding: 10px 0; border-bottom: 1px solid #1f2937; color: #38bdf8;"><a href="mailto:${emailAddress}" style="color: #38bdf8; text-decoration: none;">${emailAddress}</a></td></tr>
             <tr><td style="padding: 10px 15px 10px 0; border-bottom: 1px solid #1f2937; color: #94a3b8;"><strong>Phone:</strong></td><td style="padding: 10px 0; border-bottom: 1px solid #1f2937; color: #ffffff;">${phoneNumber || 'N/A'}</td></tr>
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
       html: `
         <div style="font-family: Arial, sans-serif; padding: 25px; color: #e2e8f0; background-color: #0b0f19; max-width: 620px; border: 1px solid #1f2937; border-radius: 12px; margin: 0 auto;">
           <div style="margin-bottom: 25px; text-align: center;">
-            <img src="${logoUrl}" alt="ShipNova" style="height: 85px; max-width: 260px; display: inline-block;" />
+            <img src="${logoUrl}" alt="ShipNova" style="height: 125px; max-width: 270px; width: auto; display: inline-block;" />
           </div>
           <h2 style="color: #ffffff; margin-top: 0; border-bottom: 2px solid #4f46e5; padding-bottom: 12px; font-size: 20px;">Request Received</h2>
           
