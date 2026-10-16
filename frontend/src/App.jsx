@@ -191,6 +191,7 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/about" element={<About />} />
       <Route path="/pricing" element={<Pricing />} />
+      <Route path="/launch-pad" element={<Navigate to="/pricing" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

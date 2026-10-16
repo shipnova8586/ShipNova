@@ -147,7 +147,9 @@ const Pricing = () => {
               status: 'success',
               title: 'Payment Successful!',
               planName: plan.name,
-              message: `Your company subscription has been successfully upgraded to ${plan.name}. Unlocking your Network features now...`
+              message: plan.isPremium
+                ? `Your company subscription has been successfully upgraded to ${plan.name}. Unlocking your Network features now...`
+                : `Your company subscription has been successfully activated for ${plan.name}. Redirecting to your Dashboard...`
             });
             setTimeout(() => {
               window.location.href = '/dashboard'; // Hard reload to re-sync updated company plan from backend

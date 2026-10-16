@@ -101,7 +101,7 @@ const LandingPage = () => {
                   <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <Link to="/launch-pad">Launch Pad</Link>
+              <Link to="/pricing">Launch Pad</Link>
               <Link to="/track">Track Your Shipment</Link>
               <Link to="/driver/login">Driver Login</Link>
             </div>

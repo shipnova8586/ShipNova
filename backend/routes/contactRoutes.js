@@ -1,6 +1,8 @@
 const express = require('express')
 const router = express.Router()
 const nodemailer = require('nodemailer')
+const path = require('path')
+const fs = require('fs')
 
 // POST /api/contact
 // Route to handle quote requests and send them via email
@@ -20,16 +22,19 @@ router.post('/', async (req, res) => {
     // The user requested to send all form submissions to this specific email
     const TARGET_EMAIL = 'shipnova8586@gmail.com'
 
+    const logoPath = path.join(__dirname, '..', 'logo.png')
+    const hasLogo = fs.existsSync(logoPath)
+
     const mailOptions = {
       from: `ShipNova Website <${process.env.EMAIL_USER}>`,
       to: TARGET_EMAIL,
       replyTo: emailAddress,
       subject: `New Quote Request from ${fullName} (${companyName})`,
-      attachments: [{
+      attachments: hasLogo ? [{
         filename: 'logo.png',
-        path: 'D:/ShipNova/backend/logo.png',
+        path: logoPath,
         cid: 'shipnovalogo' // same cid value as in the html img src
-      }],
+      }] : [],
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; color: #e2e8f0; background-color: #0b0f19; max-width: 600px; border: 1px solid #1f2937; border-radius: 8px;">
           <div style="margin-bottom: 25px; text-align: center;">
@@ -61,11 +66,11 @@ router.post('/', async (req, res) => {
       from: `ShipNova <${process.env.EMAIL_USER}>`,
       to: emailAddress,
       subject: 'Quote Request Received - ShipNova',
-      attachments: [{
+      attachments: hasLogo ? [{
         filename: 'logo.png',
-        path: 'D:/ShipNova/backend/logo.png',
+        path: logoPath,
         cid: 'shipnovalogoclient'
-      }],
+      }] : [],
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; color: #e2e8f0; background-color: #0b0f19; max-width: 600px; border: 1px solid #1f2937; border-radius: 8px;">
           <div style="margin-bottom: 25px; text-align: center; background-color: #0b0f19; padding: 10px; border-radius: 5px;">

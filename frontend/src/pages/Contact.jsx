@@ -75,7 +75,7 @@ const Contact = () => {
                 </svg>
               </div>
               <Link to="/careers">Careers</Link>
-              <Link to="/launch-pad">Launch Pad</Link>
+              <Link to="/pricing">Launch Pad</Link>
               <Link to="/track">Track Your Shipment</Link>
             </div>
             <div style={{ display: 'flex', gap: '15px' }}>
