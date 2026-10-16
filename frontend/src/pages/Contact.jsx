@@ -29,30 +29,71 @@ const Contact = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatus({ loading: true, message: 'Sending request...', type: 'info' });
-    
-    const envApiUrl = import.meta.env.VITE_API_URL;
-    const API_BASE = (envApiUrl && !envApiUrl.includes('<') && !envApiUrl.includes('AAPKA'))
-      ? envApiUrl
-      : (typeof window !== 'undefined' && window.location.hostname === 'localhost'
-          ? 'http://localhost:5000/api'
-          : 'https://shipnova-backend-nrwn.onrender.com/api');
+    setStatus({ loading: true, message: 'Sending quote request...', type: 'info' });
 
     try {
-      // Connect directly to the backend API route
-      const res = await axios.post(`${API_BASE}/contact`, formData);
-      setStatus({ loading: false, message: res.data.message || 'Your quote request has been sent successfully!', type: 'success' });
-      setFormData({
-        fullName: '', companyName: '', emailAddress: '', phoneNumber: '',
-        serviceType: '', origin: '', destination: '', deadline: '', additionalDetails: ''
+      // 1. Dispatch email via Web3Forms HTTPS API (Port 443 - bypasses cloud SMTP port blocks)
+      const web3Payload = {
+        access_key: '358bd5e8-6065-4cfc-a648-bfec283ca398',
+        subject: `New Quote Request: ${formData.fullName} (${formData.companyName})`,
+        from_name: 'ShipNova Logistics Website',
+        'Customer Name': formData.fullName,
+        'Company Name': formData.companyName,
+        'Customer Email': formData.emailAddress,
+        'Phone Number': formData.phoneNumber || 'Not provided',
+        'Service Type': formData.serviceType,
+        'Origin Location': formData.origin,
+        'Destination Location': formData.destination,
+        'Delivery Deadline': formData.deadline,
+        'Additional Details': formData.additionalDetails || 'None provided'
+      };
+
+      const web3Res = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(web3Payload)
       });
-      // Clear success message after 5 seconds
-      setTimeout(() => setStatus({ loading: false, message: '', type: '' }), 5000);
+
+      const web3Data = await web3Res.json();
+
+      // 2. Also notify backend in the background for database tracking
+      const envApiUrl = import.meta.env.VITE_API_URL;
+      const API_BASE = (envApiUrl && !envApiUrl.includes('<') && !envApiUrl.includes('AAPKA'))
+        ? envApiUrl
+        : (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+            ? 'http://localhost:5000/api'
+            : 'https://shipnova-backend-nrwn.onrender.com/api');
+
+      axios.post(`${API_BASE}/contact`, formData).catch(err => {
+        console.warn('Backend sync note:', err.message);
+      });
+
+      if (web3Data.success) {
+        setStatus({
+          loading: false,
+          message: 'Your quote request has been sent successfully! Our team will contact you shortly.',
+          type: 'success'
+        });
+        setFormData({
+          fullName: '', companyName: '', emailAddress: '', phoneNumber: '',
+          serviceType: '', origin: '', destination: '', deadline: '', additionalDetails: ''
+        });
+        setTimeout(() => setStatus({ loading: false, message: '', type: '' }), 6000);
+      } else {
+        setStatus({
+          loading: false,
+          message: web3Data.message || 'Failed to submit quote request. Please try again.',
+          type: 'error'
+        });
+      }
     } catch (error) {
       console.error('Submit error:', error);
       setStatus({ 
         loading: false, 
-        message: error.response?.data?.message || 'Oops! Something went wrong while submitting the form.', 
+        message: 'Oops! Something went wrong while submitting the form. Please check your connection and try again.', 
         type: 'error' 
       });
     }
