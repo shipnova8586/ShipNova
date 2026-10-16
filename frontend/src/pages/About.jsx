@@ -34,7 +34,7 @@ const About = () => {
               <Link to="/track">Track Your Shipment</Link>
               <Link to="/driver/login">Driver Login</Link>
             </div>
-            <Link to="/pricing" className="btn-nav-outline">CONNECT FOR A QUOTE</Link>
+            <Link to="/contact" className="btn-nav-outline">CONNECT FOR A QUOTE</Link>
           </div>
         </div>
       </nav>
