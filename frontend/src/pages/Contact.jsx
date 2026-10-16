@@ -32,34 +32,16 @@ const Contact = () => {
     setStatus({ loading: true, message: 'Sending quote request...', type: 'info' });
 
     try {
-      // 1. Dispatch email via Web3Forms HTTPS API (Port 443 - bypasses cloud SMTP port blocks)
-      const web3Payload = {
-        access_key: '358bd5e8-6065-4cfc-a648-bfec283ca398',
-        subject: `New Quote Request: ${formData.fullName} (${formData.companyName})`,
-        from_name: 'ShipNova Logistics Website',
-        'Customer Name': formData.fullName,
-        'Company Name': formData.companyName,
-        'Customer Email': formData.emailAddress,
-        'Phone Number': formData.phoneNumber || 'Not provided',
-        'Service Type': formData.serviceType,
-        'Origin Location': formData.origin,
-        'Destination Location': formData.destination,
-        'Delivery Deadline': formData.deadline,
-        'Additional Details': formData.additionalDetails || 'None provided'
-      };
-
-      const web3Res = await fetch('https://api.web3forms.com/submit', {
+      // 1. Send branded luxury emails (Admin Alert + Customer Receipt) via Vercel serverless
+      const res = await fetch('/api/send-quote', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(web3Payload)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
       });
 
-      const web3Data = await web3Res.json();
+      const data = await res.json();
 
-      // 2. Also notify backend in the background for database tracking
+      // 2. Also notify backend in the background
       const envApiUrl = import.meta.env.VITE_API_URL;
       const API_BASE = (envApiUrl && !envApiUrl.includes('<') && !envApiUrl.includes('AAPKA'))
         ? envApiUrl
@@ -71,10 +53,10 @@ const Contact = () => {
         console.warn('Backend sync note:', err.message);
       });
 
-      if (web3Data.success) {
+      if (data.success) {
         setStatus({
           loading: false,
-          message: 'Your quote request has been sent successfully! Our team will contact you shortly.',
+          message: 'Your quote request has been sent successfully! A confirmation receipt has been sent to your email.',
           type: 'success'
         });
         setFormData({
@@ -83,14 +65,48 @@ const Contact = () => {
         });
         setTimeout(() => setStatus({ loading: false, message: '', type: '' }), 6000);
       } else {
-        setStatus({
-          loading: false,
-          message: web3Data.message || 'Failed to submit quote request. Please try again.',
-          type: 'error'
-        });
+        throw new Error(data.message || 'Serverless send failed');
       }
     } catch (error) {
-      console.error('Submit error:', error);
+      console.warn('Primary dispatch notice, using backup:', error.message);
+      // Guaranteed backup: if serverless function has an issue, Web3Forms catches it
+      try {
+        const web3Res = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({
+            access_key: '358bd5e8-6065-4cfc-a648-bfec283ca398',
+            subject: `New Quote Request: ${formData.fullName} (${formData.companyName})`,
+            from_name: 'ShipNova Logistics Website',
+            'Customer Name': formData.fullName,
+            'Company Name': formData.companyName,
+            'Customer Email': formData.emailAddress,
+            'Phone Number': formData.phoneNumber || 'Not provided',
+            'Service Type': formData.serviceType,
+            'Origin Location': formData.origin,
+            'Destination Location': formData.destination,
+            'Delivery Deadline': formData.deadline,
+            'Additional Details': formData.additionalDetails || 'None provided'
+          })
+        });
+        const web3Data = await web3Res.json();
+        if (web3Data.success) {
+          setStatus({
+            loading: false,
+            message: 'Your quote request has been sent successfully! Our team will contact you shortly.',
+            type: 'success'
+          });
+          setFormData({
+            fullName: '', companyName: '', emailAddress: '', phoneNumber: '',
+            serviceType: '', origin: '', destination: '', deadline: '', additionalDetails: ''
+          });
+          setTimeout(() => setStatus({ loading: false, message: '', type: '' }), 6000);
+          return;
+        }
+      } catch (backupErr) {
+        console.error('Backup error:', backupErr);
+      }
+
       setStatus({ 
         loading: false, 
         message: 'Oops! Something went wrong while submitting the form. Please check your connection and try again.', 
