@@ -31,9 +31,16 @@ const Contact = () => {
     e.preventDefault();
     setStatus({ loading: true, message: 'Sending request...', type: 'info' });
     
+    const envApiUrl = import.meta.env.VITE_API_URL;
+    const API_BASE = (envApiUrl && !envApiUrl.includes('<') && !envApiUrl.includes('AAPKA'))
+      ? envApiUrl
+      : (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+          ? 'http://localhost:5000/api'
+          : 'https://shipnova-backend-nrwn.onrender.com/api');
+
     try {
-      // Connect to the backend API route
-      const res = await axios.post('/contact', formData);
+      // Connect directly to the backend API route
+      const res = await axios.post(`${API_BASE}/contact`, formData);
       setStatus({ loading: false, message: res.data.message || 'Your quote request has been sent successfully!', type: 'success' });
       setFormData({
         fullName: '', companyName: '', emailAddress: '', phoneNumber: '',

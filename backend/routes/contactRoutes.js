@@ -10,12 +10,15 @@ router.post('/', async (req, res) => {
   try {
     const { fullName, companyName, emailAddress, phoneNumber, serviceType, origin, destination, deadline, additionalDetails } = req.body
 
-    // Configure Nodemailer using existing credentials from .env
+    const emailUser = process.env.EMAIL_USER || 'shipnova8586@gmail.com'
+    const emailPass = process.env.EMAIL_PASS || 'oueofufhwggtpdvb'
+
+    // Configure Nodemailer using existing credentials from .env or fallback
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        user: emailUser,
+        pass: emailPass
       }
     })
 
@@ -26,7 +29,7 @@ router.post('/', async (req, res) => {
     const hasLogo = fs.existsSync(logoPath)
 
     const mailOptions = {
-      from: `ShipNova Website <${process.env.EMAIL_USER}>`,
+      from: `ShipNova Website <${emailUser}>`,
       to: TARGET_EMAIL,
       replyTo: emailAddress,
       subject: `New Quote Request from ${fullName} (${companyName})`,
@@ -63,7 +66,7 @@ router.post('/', async (req, res) => {
 
     // Auto-Responder Email for the Client
     const clientMailOptions = {
-      from: `ShipNova <${process.env.EMAIL_USER}>`,
+      from: `ShipNova <${emailUser}>`,
       to: emailAddress,
       subject: 'Quote Request Received - ShipNova',
       attachments: hasLogo ? [{
@@ -94,19 +97,16 @@ router.post('/', async (req, res) => {
       `
     }
 
-    // Send both emails concurrently in the background without making the user wait
-    Promise.all([
+    // Await sending both emails concurrently so we guarantee delivery
+    await Promise.all([
       transporter.sendMail(mailOptions),
       transporter.sendMail(clientMailOptions)
-    ]).catch(error => {
-      console.error('Background Email Send Error:', error)
-    })
+    ])
 
-    // Respond immediately to the frontend to prevent any Axios timeouts
     res.status(200).json({ success: true, message: 'Your quote request has been sent successfully!' })
   } catch (error) {
-    console.error('Request Error:', error)
-    res.status(500).json({ success: false, message: 'Failed to process request. Please try again later.', error: error.message })
+    console.error('Contact Email Error:', error)
+    res.status(500).json({ success: false, message: 'Failed to send quote request. Please try again later.', error: error.message })
   }
 })
 
