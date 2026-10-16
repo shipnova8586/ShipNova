@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       html: `
         <div style="font-family: Arial, sans-serif; padding: 25px; color: #e2e8f0; background-color: #0b0f19; max-width: 620px; border: 1px solid #1f2937; border-radius: 12px; margin: 0 auto;">
           <div style="margin-bottom: 25px; text-align: center;">
-            <img src="${logoUrl}" alt="ShipNova" style="height: 50px; display: inline-block;" />
+            <img src="${logoUrl}" alt="ShipNova" style="height: 85px; max-width: 260px; display: inline-block;" />
           </div>
           <h2 style="color: #ffffff; margin-top: 0; border-bottom: 2px solid #4f46e5; padding-bottom: 12px; font-size: 20px;">New Quote Request</h2>
           
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
       html: `
         <div style="font-family: Arial, sans-serif; padding: 25px; color: #e2e8f0; background-color: #0b0f19; max-width: 620px; border: 1px solid #1f2937; border-radius: 12px; margin: 0 auto;">
           <div style="margin-bottom: 25px; text-align: center;">
-            <img src="${logoUrl}" alt="ShipNova" style="height: 50px; display: inline-block;" />
+            <img src="${logoUrl}" alt="ShipNova" style="height: 85px; max-width: 260px; display: inline-block;" />
           </div>
           <h2 style="color: #ffffff; margin-top: 0; border-bottom: 2px solid #4f46e5; padding-bottom: 12px; font-size: 20px;">Request Received</h2>
           

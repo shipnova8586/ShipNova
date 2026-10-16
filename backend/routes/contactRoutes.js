@@ -41,7 +41,7 @@ router.post('/', async (req, res) => {
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; color: #e2e8f0; background-color: #0b0f19; max-width: 600px; border: 1px solid #1f2937; border-radius: 8px;">
           <div style="margin-bottom: 25px; text-align: center;">
-            <img src="cid:shipnovalogo" alt="ShipNova" style="height: 55px; display: inline-block;" />
+            <img src="cid:shipnovalogo" alt="ShipNova" style="height: 85px; max-width: 260px; display: inline-block;" />
           </div>
           <h2 style="color: #ffffff; margin-top: 0; border-bottom: 2px solid #4f46e5; padding-bottom: 10px;">New Quote Request</h2>
           
@@ -77,7 +77,7 @@ router.post('/', async (req, res) => {
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; color: #e2e8f0; background-color: #0b0f19; max-width: 600px; border: 1px solid #1f2937; border-radius: 8px;">
           <div style="margin-bottom: 25px; text-align: center; background-color: #0b0f19; padding: 10px; border-radius: 5px;">
-            <img src="cid:shipnovalogoclient" alt="ShipNova" style="height: 55px; display: inline-block;" />
+            <img src="cid:shipnovalogoclient" alt="ShipNova" style="height: 85px; max-width: 260px; display: inline-block;" />
           </div>
           <h2 style="color: #ffffff; margin-top: 0; border-bottom: 2px solid #4f46e5; padding-bottom: 10px;">Request Received</h2>
           
