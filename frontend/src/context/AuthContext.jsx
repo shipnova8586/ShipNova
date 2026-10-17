@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
   const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
   const { signOut } = useClerkAuth();
 
-  // Set API base URL and timeout
+  // Set API base URL and timeout (45s for Render cold-starts)
   const envApiUrl = import.meta.env.VITE_API_URL;
   const API_URL = (envApiUrl && !envApiUrl.includes('<') && !envApiUrl.includes('AAPKA'))
     ? envApiUrl
@@ -23,11 +23,13 @@ export const AuthProvider = ({ children }) => {
         ? 'http://localhost:5000/api'
         : 'https://shipnova-backend-nrwn.onrender.com/api');
   axios.defaults.baseURL = API_URL;
-  axios.defaults.timeout = 15000;
+  axios.defaults.timeout = 45000;
 
   // When Clerk user state changes, sync with our backend
   useEffect(() => {
-    const syncWithBackend = async () => {
+    let isMounted = true;
+
+    const syncWithBackend = async (retryCount = 0) => {
       // Wait for Clerk to finish loading
       if (!clerkLoaded) return;
 
@@ -51,14 +53,17 @@ export const AuthProvider = ({ children }) => {
           name
         });
 
-        if (res.data.success) {
+        if (res.data.success && isMounted) {
           // Existing user found - store JWT and user data
           localStorage.setItem('token', res.data.token);
           axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
           setUser(res.data.user);
           setIsNewClerkUser(false);
+          setLoading(false);
         }
       } catch (err) {
+        if (!isMounted) return;
+
         if (err.response?.status === 404 && err.response?.data?.isNewUser) {
           // New Clerk user - needs to register their company
           setIsNewClerkUser(true);
@@ -68,15 +73,25 @@ export const AuthProvider = ({ children }) => {
             name
           });
           setUser(null);
+          setLoading(false);
+        } else if (retryCount < 2 && (!err.response || err.code === 'ECONNABORTED' || err.response?.status >= 500)) {
+          // Server cold-starting on Render, retry automatically
+          console.warn(`[ShipNova] Backend waking up, retrying sync (attempt ${retryCount + 1})...`);
+          setTimeout(() => {
+            if (isMounted) syncWithBackend(retryCount + 1);
+          }, 3000);
         } else {
           setError(err.response?.data?.message || 'Failed to sync with backend.');
+          setLoading(false);
         }
-      } finally {
-        setLoading(false);
       }
     };
 
     syncWithBackend();
+
+    return () => {
+      isMounted = false;
+    };
   }, [clerkUser, clerkLoaded]);
 
   // Register Company (called from registration form for new Clerk users)

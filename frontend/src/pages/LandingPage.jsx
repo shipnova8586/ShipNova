@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@clerk/clerk-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Minus, ChevronLeft, ChevronRight } from 'lucide-react';
 import ShipNovaLogo from '../components/ShipNovaLogo';
@@ -34,6 +35,7 @@ const faqs = [
 ];
 
 const LandingPage = () => {
+  const { isSignedIn } = useAuth();
   const [openFaq, setOpenFaq] = useState(null);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
 
@@ -106,7 +108,11 @@ const LandingPage = () => {
               <Link to="/driver/login">Driver Login</Link>
             </div>
             <div style={{ display: 'flex', gap: '15px' }}>
-              <Link to="/sign-in" className="btn-nav-outline">SIGN IN</Link>
+              {isSignedIn ? (
+                <Link to="/dashboard" className="btn-nav-outline">DASHBOARD</Link>
+              ) : (
+                <Link to="/sign-in" className="btn-nav-outline">SIGN IN</Link>
+              )}
               <Link to="/pricing" className="btn-nav-outline">GET STARTED</Link>
             </div>
           </div>

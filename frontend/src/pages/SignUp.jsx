@@ -76,6 +76,12 @@ const SignUp = () => {
 
   const handleGoogle = async () => {
     if (!isLoaded) return;
+    if (isSignedIn) {
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+    setLoading(true);
+    setError('');
     try {
       const planStr = plan ? `?plan=${plan}` : '';
       await signUp.authenticateWithRedirect({
@@ -85,10 +91,31 @@ const SignUp = () => {
       });
     } catch (err) {
       console.error("Google OAuth Error:", err);
-      const errorMsg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || JSON.stringify(err);
-      setError(`Google sign up failed: ${errorMsg}`);
+      const errorMsg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || '';
+
+      // If user is already authenticated in Clerk, seamlessly route to dashboard
+      if (errorMsg.toLowerCase().includes('already signed in') || err?.errors?.some(e => e.code === 'session_exists')) {
+        navigate('/dashboard', { replace: true });
+        return;
+      }
+
+      setError(`Google sign up failed: ${errorMsg || 'Please try again.'}`);
+      setLoading(false);
     }
   };
+
+  // If user is already authenticated, show friendly redirect state
+  if (isSignedIn) {
+    return (
+      <div className="login-page" style={{ justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ textAlign: 'center', padding: '40px', background: 'rgba(15, 23, 42, 0.85)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.1)', maxWidth: '400px', width: '90%' }}>
+          <div className="spinner" style={{ margin: '0 auto 20px', width: '40px', height: '40px' }}></div>
+          <h2 style={{ color: '#f8fafc', fontSize: '1.25rem', marginBottom: '8px' }}>Active Session Detected</h2>
+          <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Redirecting to your ShipNova console...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="login-page">
