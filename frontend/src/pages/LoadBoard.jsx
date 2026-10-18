@@ -1,12 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Compass, Clock, ShieldCheck, CheckCircle2, TrendingUp, Sparkles, MapPin } from 'lucide-react';
+import { 
+  Compass, Clock, ShieldCheck, CheckCircle2, TrendingUp, Sparkles, 
+  MapPin, X, AlertTriangle, Truck, DollarSign, Award, Check 
+} from 'lucide-react';
 import './Pages.css';
 
 const LoadBoard = () => {
   const [publicShipments, setPublicShipments] = useState([]);
   const [bids, setBids] = useState({}); // { shipmentId: [bids...] }
   const [loading, setLoading] = useState(true);
+
+  // In-App Confirmation Modal & Toast States
+  const [acceptModal, setAcceptModal] = useState({
+    isOpen: false,
+    bid: null,
+    shipment: null,
+    submitting: false
+  });
+
+  const [toast, setToast] = useState({ show: false, type: 'success', title: '', message: '' });
+  const toastTimeoutRef = useRef(null);
+
+  const showToast = (title, message, type = 'success') => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToast({ show: true, type, title, message });
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(prev => ({ ...prev, show: false }));
+    }, 4500);
+  };
 
   const fetchPublicShipments = async () => {
     try {
@@ -45,27 +67,49 @@ const LoadBoard = () => {
     try {
       const res = await axios.post(`/network/shipments/${id}/mock-bids`);
       if (res.data.success) {
-        alert(res.data.message);
+        showToast('Bids Generated ✨', res.data.message || 'Simulated carrier bids received.', 'success');
         fetchBidsForShipment(id);
       }
     } catch (err) {
       console.error(err);
-      alert('Error generating bids');
+      showToast('Error', 'Failed to generate simulated bids', 'error');
     }
   };
 
-  const handleAcceptBid = async (bidId) => {
-    if (window.confirm('Accept this bid? The carrier will be assigned to this shipment and it will be removed from the public load board.')) {
-      try {
-        const res = await axios.put(`/network/bids/${bidId}/accept`);
-        if (res.data) {
-          alert('Bid accepted successfully! Carrier assigned.');
-          fetchPublicShipments(); // Refresh list
-        }
-      } catch (err) {
-        console.error('Failed to accept bid:', err);
-        alert('Failed to accept bid');
+  const openAcceptModal = (bid, shipment) => {
+    setAcceptModal({
+      isOpen: true,
+      bid,
+      shipment,
+      submitting: false
+    });
+  };
+
+  const closeAcceptModal = () => {
+    if (acceptModal.submitting) return;
+    setAcceptModal({ isOpen: false, bid: null, shipment: null, submitting: false });
+  };
+
+  const handleConfirmAcceptBid = async () => {
+    if (!acceptModal.bid) return;
+    try {
+      setAcceptModal(prev => ({ ...prev, submitting: true }));
+      const res = await axios.put(`/network/bids/${acceptModal.bid._id}/accept`);
+      if (res.data) {
+        const carrier = acceptModal.bid.carrierName || 'Carrier';
+        const track = acceptModal.shipment?.trackingNumber || '';
+        closeAcceptModal();
+        showToast(
+          'Bid Accepted Successfully! 🚀',
+          `Bid from ${carrier} has been accepted for shipment #${track}. Carrier is assigned and notified in real-time.`,
+          'success'
+        );
+        fetchPublicShipments(); // Refresh list
       }
+    } catch (err) {
+      console.error('Failed to accept bid:', err);
+      showToast('Error', err.response?.data?.message || 'Failed to accept bid', 'error');
+      setAcceptModal(prev => ({ ...prev, submitting: false }));
     }
   };
 
@@ -221,8 +265,8 @@ const LoadBoard = () => {
                             <div>
                               <button 
                                 className="btn btn-primary"
-                                style={{ background: '#00e5ff', color: '#000', border: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
-                                onClick={() => handleAcceptBid(bid._id)}
+                                style={{ background: '#00e5ff', color: '#000', border: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                                onClick={() => openAcceptModal(bid, shipment)}
                               >
                                 <CheckCircle2 size={16} /> Accept
                               </button>
@@ -238,6 +282,213 @@ const LoadBoard = () => {
           </div>
         )}
       </div>
+
+      {/* CONFIRM ACCEPT BID MODAL */}
+      {acceptModal.isOpen && acceptModal.bid && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(5, 10, 20, 0.82)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          padding: '20px'
+        }} onClick={closeAcceptModal}>
+          <div style={{
+            background: 'linear-gradient(135deg, #131d31, #0c1424)',
+            border: '1px solid rgba(0, 229, 255, 0.3)',
+            borderRadius: '24px',
+            width: '100%',
+            maxWidth: '520px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 40px rgba(0, 229, 255, 0.15)',
+            padding: '28px',
+            position: 'relative'
+          }} onClick={(e) => e.stopPropagation()}>
+            
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '14px',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <CheckCircle2 size={26} color="#10b981" />
+                </div>
+                <div>
+                  <h3 style={{ color: '#fff', fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Accept Carrier Bid</h3>
+                  <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '4px 0 0 0' }}>
+                    Assign shipment to carrier & award load
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeAcceptModal}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#94a3b8',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Carrier & Shipment Card */}
+            <div style={{
+              background: 'rgba(15, 23, 42, 0.7)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '16px',
+              padding: '18px',
+              marginBottom: '20px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: '12px', marginBottom: '12px' }}>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Shipment</span>
+                  <div style={{ color: '#00e5ff', fontWeight: 700, fontSize: '0.95rem' }}>
+                    #{acceptModal.shipment?.trackingNumber}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Agreed Bid Rate</span>
+                  <div style={{ color: '#10b981', fontWeight: 800, fontSize: '1.4rem' }}>
+                    ${acceptModal.bid?.bidAmount}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.85rem' }}>
+                <div>
+                  <span style={{ color: '#64748b', fontSize: '0.75rem', display: 'block' }}>Selected Carrier</span>
+                  <strong style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                    <Truck size={14} color="#00e5ff" /> {acceptModal.bid?.carrierName}
+                  </strong>
+                </div>
+                <div>
+                  <span style={{ color: '#64748b', fontSize: '0.75rem', display: 'block' }}>Carrier Rating</span>
+                  <strong style={{ color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                    ⭐ {acceptModal.bid?.carrierRating || '5.0'} / 5.0
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', lineHeight: '1.4', margin: '0 0 24px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+              <ShieldCheck size={18} color="#00e5ff" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <span>
+                Accepting this bid will immediately assign the shipment to <strong>{acceptModal.bid?.carrierName}</strong>, update company dispatch, and remove it from the public load board.
+              </span>
+            </p>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={closeAcceptModal}
+                disabled={acceptModal.submitting}
+                style={{
+                  flex: 1,
+                  padding: '13px 18px',
+                  borderRadius: '12px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#94a3b8',
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmAcceptBid}
+                disabled={acceptModal.submitting}
+                style={{
+                  flex: 2,
+                  padding: '13px 20px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  border: 'none',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)'
+                }}
+              >
+                {acceptModal.submitting ? (
+                  <span>Assigning Carrier...</span>
+                ) : (
+                  <>
+                    <CheckCircle2 size={18} /> Confirm & Assign Carrier
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FLOATING TOAST NOTIFICATION */}
+      {toast.show && (
+        <div style={{
+          position: 'fixed',
+          top: '24px',
+          right: '24px',
+          background: toast.type === 'success' 
+            ? 'linear-gradient(135deg, rgba(6, 78, 59, 0.95), rgba(15, 23, 42, 0.95))' 
+            : 'linear-gradient(135deg, rgba(127, 29, 29, 0.95), rgba(15, 23, 42, 0.95))',
+          border: toast.type === 'success' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)',
+          borderRadius: '16px',
+          padding: '16px 20px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '12px',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 229, 255, 0.1)',
+          zIndex: 999999,
+          maxWidth: '420px',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          animation: 'fadeInDown 0.3s ease-out'
+        }}>
+          {toast.type === 'success' ? (
+            <CheckCircle2 size={22} color="#10b981" style={{ flexShrink: 0, marginTop: '2px' }} />
+          ) : (
+            <AlertTriangle size={22} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />
+          )}
+          <div style={{ flex: 1 }}>
+            <div style={{ color: '#fff', fontWeight: 700, fontSize: '0.92rem' }}>{toast.title}</div>
+            <div style={{ color: '#cbd5e1', fontSize: '0.82rem', marginTop: '4px', lineHeight: '1.4' }}>{toast.message}</div>
+          </div>
+          <button
+            onClick={() => setToast(prev => ({ ...prev, show: false }))}
+            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };
