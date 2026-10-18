@@ -244,15 +244,21 @@ const InternalDashboard = () => {
                     </div>
                   )}
             
-            <div className="trip-locations">
+            <div className="trip-locations" style={{ marginBottom: '12px' }}>
               <div className="trip-point">
                 <h4>Pickup</h4>
-                <p>Warehouse / HQ</p>
+                <p style={{ wordBreak: 'break-word' }}>{trip.pickupAddress || 'HQ Warehouse'}</p>
               </div>
               <div className="trip-point">
                 <h4>Dropoff</h4>
-                <p>Customer Location</p>
+                <p style={{ wordBreak: 'break-word' }}>{trip.deliveryAddress || 'Customer Location'}</p>
               </div>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px', fontSize: '0.72rem', color: '#94a3b8' }}>
+              {trip.senderName && <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '6px' }}>👤 From: {trip.senderName}</span>}
+              {trip.receiverName && <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '6px' }}>📍 To: {trip.receiverName}</span>}
+              {trip.weight && <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '6px' }}>⚖️ {trip.weight} kg</span>}
             </div>
 
             {trip.status !== 'Delivered' && (

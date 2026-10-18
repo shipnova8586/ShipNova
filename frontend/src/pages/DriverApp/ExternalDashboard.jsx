@@ -350,15 +350,21 @@ const ExternalDashboard = () => {
                     </div>
                   )}
 
-                  <div className="trip-locations">
+                  <div className="trip-locations" style={{ marginBottom: '12px' }}>
                     <div className="trip-point">
                       <h4>Pickup</h4>
-                      <p>Warehouse / HQ</p>
+                      <p style={{ wordBreak: 'break-word' }}>{trip.pickupAddress || 'Origin Warehouse'}</p>
                     </div>
                     <div className="trip-point">
                       <h4>Dropoff</h4>
-                      <p>Customer Location</p>
+                      <p style={{ wordBreak: 'break-word' }}>{trip.deliveryAddress || 'Delivery Address'}</p>
                     </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px', fontSize: '0.72rem', color: '#94a3b8' }}>
+                    {trip.senderName && <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '6px' }}>👤 From: {trip.senderName}</span>}
+                    {trip.receiverName && <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '6px' }}>📍 To: {trip.receiverName}</span>}
+                    {trip.weight && <span style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '6px' }}>⚖️ {trip.weight} kg</span>}
                   </div>
 
                   {trip.status !== 'Delivered' && (
@@ -467,15 +473,24 @@ const ExternalDashboard = () => {
                     <div className="badge-pending trip-badge" style={{ margin: 0 }}>Available</div>
                   </div>
                   
-                  <div className="trip-locations" style={{ marginBottom: '15px' }}>
+                  <div className="trip-locations" style={{ marginBottom: '12px' }}>
                     <div className="trip-point">
                       <h4>Pickup</h4>
-                      <p>HQ Warehouse</p>
+                      <p style={{ wordBreak: 'break-word' }}>{load.pickupAddress || 'Origin Pending'}</p>
                     </div>
                     <div className="trip-point">
                       <h4>Dropoff</h4>
-                      <p>Delivery Location</p>
+                      <p style={{ wordBreak: 'break-word' }}>{load.deliveryAddress || 'Destination Pending'}</p>
                     </div>
+                  </div>
+
+                  {/* Load Details Row */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px', fontSize: '0.72rem', color: '#94a3b8' }}>
+                    <span style={{ background: 'rgba(255,255,255,0.05)', padding: '3px 8px', borderRadius: '6px' }}>⚖️ {load.weight || 0} kg</span>
+                    <span style={{ background: 'rgba(255,255,255,0.05)', padding: '3px 8px', borderRadius: '6px' }}>📦 {load.shipmentType || 'Standard'}</span>
+                    {load.companyId?.name && (
+                      <span style={{ background: 'rgba(0, 229, 255, 0.1)', color: '#00e5ff', padding: '3px 8px', borderRadius: '6px' }}>🏢 {load.companyId.name}</span>
+                    )}
                   </div>
 
                   <button className="app-btn" onClick={() => openBidModal(load)} style={{ padding: '12px', fontSize: '0.95rem', fontWeight: 700, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #00e5ff, #0284c7)', color: '#000', border: 'none', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0, 229, 255, 0.25)' }}>
@@ -692,12 +707,32 @@ const ExternalDashboard = () => {
               </button>
             </div>
 
-            {/* Route Summary */}
+            {/* Real Route & Cargo Summary */}
             <div style={{ background: '#0a0f1d', borderRadius: '14px', padding: '12px 14px', marginBottom: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#94a3b8' }}>
-                <span>Origin: <strong style={{ color: '#fff' }}>HQ Warehouse</strong></span>
-                <span>➔</span>
-                <span>Destination: <strong style={{ color: '#fff' }}>Client Hub</strong></span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                  <div style={{ flex: 1, minWidth: 0, paddingRight: '8px' }}>
+                    <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pickup (Origin)</span>
+                    <strong style={{ color: '#00e5ff', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={bidModal.load?.pickupAddress}>
+                      {bidModal.load?.pickupAddress || 'Origin Pending'}
+                    </strong>
+                  </div>
+                  <div style={{ color: '#64748b', fontSize: '1rem', padding: '0 4px', flexShrink: 0 }}>➔</div>
+                  <div style={{ flex: 1, minWidth: 0, paddingLeft: '8px', textAlign: 'right' }}>
+                    <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Dropoff (Dest)</span>
+                    <strong style={{ color: '#10b981', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={bidModal.load?.deliveryAddress}>
+                      {bidModal.load?.deliveryAddress || 'Destination Pending'}
+                    </strong>
+                  </div>
+                </div>
+
+                {(bidModal.load?.weight || bidModal.load?.shipmentType || bidModal.load?.companyId?.name) && (
+                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px', fontSize: '0.72rem', color: '#94a3b8' }}>
+                    {bidModal.load?.weight && <span style={{ background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: '4px' }}>⚖️ {bidModal.load.weight} kg</span>}
+                    {bidModal.load?.shipmentType && <span style={{ background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: '4px' }}>📦 {bidModal.load.shipmentType}</span>}
+                    {bidModal.load?.companyId?.name && <span style={{ color: '#00e5ff', marginLeft: 'auto' }}>🏢 {bidModal.load.companyId.name}</span>}
+                  </div>
+                )}
               </div>
             </div>
 
