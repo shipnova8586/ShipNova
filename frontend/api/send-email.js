@@ -95,7 +95,7 @@ export default async function handler(req, res) {
 
         <!-- Professional Footer -->
         <div style="background-color: #1f2937; padding: 25px 20px; text-align: center;">
-          <p style="color: #9ca3af; font-size: 14px; margin: 0 0 10px 0;">Need help with your shipment? Contact our 24/7 support at <a href="mailto:support@shipnova.com" style="color: #818cf8; text-decoration: none;">support@shipnova.com</a></p>
+          <p style="color: #9ca3af; font-size: 14px; margin: 0 0 10px 0;">Need help with your shipment? Contact our 24/7 support at <a href="mailto:shipnova8586@gmail.com" style="color: #818cf8; text-decoration: none;">shipnova8586@gmail.com</a></p>
           <div style="margin-top: 15px;">
             <span style="color: #9ca3af; font-size: 12px; margin: 0 10px;">Facebook</span>
             <span style="color: #9ca3af; font-size: 12px; margin: 0 10px;">Twitter</span>
