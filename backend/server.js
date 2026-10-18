@@ -74,7 +74,14 @@ app.get('/api/test-email', async (req, res) => {
       message: result ? `Diagnostic email successfully sent to ${to}` : `Failed to send email to ${to}`
     })
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message, stack: err.stack })
+    res.status(500).json({
+      success: false,
+      error: err.message,
+      code: err.code,
+      command: err.command,
+      response: err.response,
+      responseCode: err.responseCode
+    })
   }
 })
 

@@ -116,7 +116,7 @@ const sendEmail = async (options) => {
     return true
   } catch (error) {
     console.error('Error sending premium email:', error)
-    return false
+    throw error
   }
 }
 
