@@ -8,11 +8,14 @@ const sendEmail = async (options) => {
     const trackingUrl = `${baseUrl}/track?tracking=${shipment.trackingNumber}`
     const customerName = shipment.customerId ? shipment.customerId.name : 'Valued Customer'
 
+    const user = process.env.EMAIL_USER || 'shipnova8586@gmail.com'
+    const pass = process.env.EMAIL_PASS || 'oueofufhwggtpdvb'
+
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        user,
+        pass
       }
     })
 
@@ -80,18 +83,23 @@ const sendEmail = async (options) => {
       </div>
     `
 
+    const fs = require('fs')
+    const logoPath = path.join(__dirname, '../public/logo.png')
+    const attachments = []
+    if (fs.existsSync(logoPath)) {
+      attachments.push({
+        filename: 'logo.png',
+        path: logoPath,
+        cid: 'shipnovalogo'
+      })
+    }
+
     const mailOptions = {
-      from: `"ShipNova Billing" <${process.env.EMAIL_USER}>`,
+      from: `"ShipNova Billing" <${user}>`,
       to,
       subject,
       html: htmlTemplate,
-      attachments: [
-        {
-          filename: 'logo.png',
-          path: path.join(__dirname, '../public/logo.png'),
-          cid: 'shipnovalogo'
-        }
-      ]
+      attachments
     }
 
     if (type === 'DELIVERED' && pdfBuffer) {

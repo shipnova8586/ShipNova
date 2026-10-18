@@ -51,6 +51,33 @@ app.get('/', (req, res) => {
   })
 })
 
+// Diagnostic Email Endpoint
+app.get('/api/test-email', async (req, res) => {
+  try {
+    const sendEmail = require('./utils/sendEmail')
+    const to = req.query.to || 'shipnova8586@gmail.com'
+    const result = await sendEmail({
+      to,
+      subject: 'ShipNova Test Diagnostics',
+      type: 'ASSIGNED',
+      shipment: {
+        trackingNumber: 'SN-TEST-DIAG',
+        status: 'Assigned',
+        shipmentType: 'Express',
+        weight: 15,
+        customerId: { name: 'Test Diagnostic Customer', email: to }
+      }
+    })
+    res.json({
+      success: result,
+      envUser: process.env.EMAIL_USER ? 'CONFIGURED' : 'USING_FALLBACK',
+      message: result ? `Diagnostic email successfully sent to ${to}` : `Failed to send email to ${to}`
+    })
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message, stack: err.stack })
+  }
+})
+
 // Mount Routes
 app.use('/api/auth', require('./routes/authRoutes'))
 app.use('/api/customers', require('./routes/customerRoutes'))
