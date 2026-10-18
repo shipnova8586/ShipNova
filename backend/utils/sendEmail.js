@@ -4,7 +4,8 @@ const path = require('path')
 const sendEmail = async (options) => {
   try {
     const { to, subject, type, shipment, invoiceNum, pdfBuffer } = options
-    const trackingUrl = `http://localhost:5173/track?tracking=${shipment.trackingNumber}`
+    const baseUrl = process.env.FRONTEND_URL || 'https://shipnova-logistics.vercel.app'
+    const trackingUrl = `${baseUrl}/track?tracking=${shipment.trackingNumber}`
     const customerName = shipment.customerId ? shipment.customerId.name : 'Valued Customer'
 
     const transporter = nodemailer.createTransport({

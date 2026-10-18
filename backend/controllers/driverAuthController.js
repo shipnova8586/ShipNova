@@ -93,6 +93,8 @@ const signupExternalCarrier = async (req, res) => {
 }
 
 const Shipment = require('../models/Shipment')
+const sendEmail = require('../utils/sendEmail')
+const generateInvoice = require('../utils/generateInvoice')
 
 // @desc    Get assigned trips for logged in driver
 // @route   GET /api/driver-auth/my-trips
@@ -129,14 +131,36 @@ const updateTripStatus = async (req, res) => {
 
     const { status } = req.body // e.g. "Picked Up", "In Transit", "Delivered"
 
-    const shipment = await Shipment.findOneAndUpdate(
-      { _id: req.params.id, driverId: decoded.id },
-      { status },
-      { new: true }
-    )
+    const shipment = await Shipment.findOne({
+      _id: req.params.id,
+      driverId: decoded.id
+    }).populate('customerId')
 
     if (!shipment) {
       return res.status(404).json({ success: false, message: 'Trip not found or unauthorized' })
+    }
+
+    const wasNotDelivered = shipment.status !== 'Delivered'
+    const isNowDelivered = status === 'Delivered'
+
+    shipment.status = status
+    await shipment.save()
+
+    // Trigger Invoice Email if status just changed to Delivered
+    if (wasNotDelivered && isNowDelivered && shipment.customerId && shipment.customerId.email) {
+      generateInvoice(shipment)
+        .then(pdfBuffer => {
+          const invoiceNum = 'INV-' + shipment.trackingNumber.slice(-6).toUpperCase()
+          sendEmail({
+            to: shipment.customerId.email,
+            subject: `Invoice ${invoiceNum} from ShipNova`,
+            type: 'DELIVERED',
+            shipment,
+            invoiceNum,
+            pdfBuffer
+          })
+        })
+        .catch(err => console.error('Failed to generate or send invoice from driver app:', err))
     }
 
     res.status(200).json({ success: true, data: shipment })

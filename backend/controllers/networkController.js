@@ -1,6 +1,7 @@
 const Shipment = require('../models/Shipment')
 const Bid = require('../models/Bid')
 const Driver = require('../models/Driver')
+const sendEmail = require('../utils/sendEmail')
 
 // @desc    Get all public shipments for the load board
 // @route   GET /api/network/load-board
@@ -100,7 +101,10 @@ const acceptBid = async (req, res) => {
     const bid = await Bid.findById(req.params.id)
     if (!bid) return res.status(404).json({ success: false, message: 'Bid not found' })
 
-    const shipment = await Shipment.findById(bid.shipmentId)
+    const shipment = await Shipment.findById(bid.shipmentId).populate('customerId')
+    if (!shipment) return res.status(404).json({ success: false, message: 'Shipment not found' })
+
+    const wasNotAssigned = shipment.status !== 'Assigned'
 
     // Mark bid as accepted, reject others
     await Bid.updateMany({ shipmentId: shipment._id }, { status: 'Rejected' })
@@ -118,6 +122,16 @@ const acceptBid = async (req, res) => {
       await Driver.findByIdAndUpdate(bid.driverId, { currentStatus: 'On Duty' })
     }
     await shipment.save()
+
+    // Trigger Assigned Email
+    if (wasNotAssigned && shipment.customerId && shipment.customerId.email) {
+      sendEmail({
+        to: shipment.customerId.email,
+        subject: 'Shipment Assigned - ShipNova',
+        type: 'ASSIGNED',
+        shipment
+      }).catch(err => console.error('Failed to send Assigned email from acceptBid:', err))
+    }
 
     // Emit real-time notification to the driver
     if (bid.driverId) {
