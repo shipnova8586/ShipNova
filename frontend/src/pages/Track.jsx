@@ -4,6 +4,7 @@ import { Search, MapPin, Truck, Calendar, User, Package, AlertTriangle, Phone, S
 import { Link, useLocation } from 'react-router-dom';
 import ShipNovaLogo from '../components/ShipNovaLogo';
 import LiveMap from '../components/LiveMap';
+import { Toast } from '../components/ConfirmModal';
 import './Track.css';
 
 const Track = () => {
@@ -11,7 +12,12 @@ const Track = () => {
   const [shipment, setShipment] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState({ show: false, title: '', message: '', type: 'success' });
   const location = useLocation();
+
+  const showToast = (title, message, type = 'success') => {
+    setToast({ show: true, title, message, type });
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -53,8 +59,9 @@ const Track = () => {
   const handleShare = () => {
     const url = window.location.href;
     navigator.clipboard.writeText(url).then(() => {
-      alert("Tracking link copied to clipboard!");
+      showToast('Link Copied!', 'Live tracking link has been copied to clipboard.', 'success');
     }).catch(err => {
+      showToast('Copy Failed', 'Failed to copy tracking link.', 'error');
       console.error('Could not copy text: ', err);
     });
   };
@@ -245,6 +252,11 @@ const Track = () => {
           </div>
         )}
       </div>
+
+      <Toast
+        {...toast}
+        onClose={() => setToast(prev => ({ ...prev, show: false }))}
+      />
     </div>
   );
 };

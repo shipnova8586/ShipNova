@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Plus, Search, Edit2, Trash2, X, AlertCircle } from 'lucide-react';
+import { ConfirmModal, Toast } from '../components/ConfirmModal';
 import './Pages.css';
 
 const Customers = () => {
@@ -21,6 +22,22 @@ const Customers = () => {
   });
 
   const [formError, setFormError] = useState('');
+
+  // Luxury Modal & Toast States
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Delete',
+    confirmVariant: 'danger',
+    onConfirm: null,
+    loading: false
+  });
+  const [toast, setToast] = useState({ show: false, title: '', message: '', type: 'success' });
+
+  const showToast = (title, message, type = 'success') => {
+    setToast({ show: true, title, message, type });
+  };
 
   // Fetch Customers on load
   const fetchCustomers = async () => {
@@ -88,17 +105,31 @@ const Customers = () => {
     }
   };
 
-  const handleDeleteCustomer = async (id) => {
-    if (window.confirm('Are you sure you want to delete this customer?')) {
-      try {
-        const res = await axios.delete(`/customers/${id}`);
-        if (res.data.success) {
-          fetchCustomers();
+  const handleDeleteCustomer = (customer) => {
+    const customerId = typeof customer === 'object' ? customer._id : customer;
+    const customerName = typeof customer === 'object' ? customer.name : 'this customer';
+
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Customer',
+      message: `Are you sure you want to permanently delete "${customerName}"? This record and associated information will be permanently removed.`,
+      confirmText: 'Delete Customer',
+      confirmVariant: 'danger',
+      onConfirm: async () => {
+        try {
+          setConfirmModal(prev => ({ ...prev, loading: true }));
+          const res = await axios.delete(`/customers/${customerId}`);
+          if (res.data.success) {
+            setConfirmModal(prev => ({ ...prev, isOpen: false, loading: false }));
+            showToast('Customer Deleted', 'Customer has been deleted successfully.', 'success');
+            fetchCustomers();
+          }
+        } catch (err) {
+          setConfirmModal(prev => ({ ...prev, loading: false }));
+          showToast('Delete Failed', err.response?.data?.message || 'Failed to delete customer.', 'error');
         }
-      } catch (err) {
-        alert(err.response?.data?.message || 'Failed to delete customer.');
       }
-    }
+    });
   };
 
   // Filter customers by search query
@@ -177,7 +208,7 @@ const Customers = () => {
                       <button onClick={() => openEditModal(customer)} className="action-btn edit" title="Edit Customer">
                         <Edit2 size={16} />
                       </button>
-                      <button onClick={() => handleDeleteCustomer(customer._id)} className="action-btn delete" title="Delete Customer">
+                      <button onClick={() => handleDeleteCustomer(customer)} className="action-btn delete" title="Delete Customer">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -269,6 +300,16 @@ const Customers = () => {
           </div>
         </div>
       )}
+
+      {/* Luxury Confirm Modal & Toast */}
+      <ConfirmModal
+        {...confirmModal}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
+      <Toast
+        {...toast}
+        onClose={() => setToast(prev => ({ ...prev, show: false }))}
+      />
     </div>
   );
 };

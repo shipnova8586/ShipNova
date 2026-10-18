@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Plus, Search, Shield, Trash2, X, AlertCircle, Edit2 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import { ConfirmModal, Toast } from '../components/ConfirmModal';
 import './Pages.css';
 
 const Team = () => {
@@ -21,6 +22,22 @@ const Team = () => {
     role: 'dispatcher'
   });
   const [formError, setFormError] = useState('');
+
+  // Luxury Modal & Toast States
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Remove',
+    confirmVariant: 'danger',
+    onConfirm: null,
+    loading: false
+  });
+  const [toast, setToast] = useState({ show: false, title: '', message: '', type: 'success' });
+
+  const showToast = (title, message, type = 'success') => {
+    setToast({ show: true, title, message, type });
+  };
 
   const fetchTeam = async () => {
     try {
@@ -88,17 +105,31 @@ const Team = () => {
     }
   };
 
-  const handleDeleteMember = async (id) => {
-    if (window.confirm('Are you sure you want to remove this member from the team?')) {
-      try {
-        const res = await axios.delete(`/users/${id}`);
-        if (res.data.success) {
-          fetchTeam();
+  const handleDeleteMember = (member) => {
+    const memberId = typeof member === 'object' ? member._id : member;
+    const memberName = typeof member === 'object' ? member.name : 'this member';
+
+    setConfirmModal({
+      isOpen: true,
+      title: 'Remove Team Member',
+      message: `Are you sure you want to remove "${memberName}" from the company team? Their workspace access and permissions will be revoked immediately.`,
+      confirmText: 'Remove Member',
+      confirmVariant: 'danger',
+      onConfirm: async () => {
+        try {
+          setConfirmModal(prev => ({ ...prev, loading: true }));
+          const res = await axios.delete(`/users/${memberId}`);
+          if (res.data.success) {
+            setConfirmModal(prev => ({ ...prev, isOpen: false, loading: false }));
+            showToast('Member Removed', `${memberName} has been removed from the team.`, 'success');
+            fetchTeam();
+          }
+        } catch (err) {
+          setConfirmModal(prev => ({ ...prev, loading: false }));
+          showToast('Failed to Remove', err.response?.data?.message || 'Failed to remove team member.', 'error');
         }
-      } catch (err) {
-        alert(err.response?.data?.message || 'Failed to remove team member.');
       }
-    }
+    });
   };
 
   const getRoleBadge = (role) => {
@@ -198,7 +229,7 @@ const Team = () => {
                         <Edit2 size={16} />
                       </button>
                       <button 
-                        onClick={() => handleDeleteMember(member._id)} 
+                        onClick={() => handleDeleteMember(member)} 
                         className="action-btn delete" 
                         title="Remove Member"
                         disabled={member._id === user.id}
@@ -288,6 +319,16 @@ const Team = () => {
           </div>
         </div>
       )}
+
+      {/* Luxury Confirm Modal & Toast */}
+      <ConfirmModal
+        {...confirmModal}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
+      <Toast
+        {...toast}
+        onClose={() => setToast(prev => ({ ...prev, show: false }))}
+      />
     </div>
   );
 };

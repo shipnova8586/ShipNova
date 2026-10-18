@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext, useCallback } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { Plus, Search, Edit2, Trash2, X, AlertCircle, Eye, Globe } from 'lucide-react';
+import { ConfirmModal, Toast } from '../components/ConfirmModal';
 import './Pages.css';
 
 const Shipments = () => {
@@ -35,6 +36,22 @@ const Shipments = () => {
   });
 
   const [formError, setFormError] = useState('');
+
+  // Luxury Modal & Toast States
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Delete Shipment',
+    confirmVariant: 'danger',
+    onConfirm: null,
+    loading: false
+  });
+  const [toast, setToast] = useState({ show: false, title: '', message: '', type: 'success' });
+
+  const showToast = (title, message, type = 'success') => {
+    setToast({ show: true, title, message, type });
+  };
 
   const canManageShipments = ['company_admin', 'manager', 'dispatcher'].includes(user.role);
   const hasNetworkAccess = user.companyId?.subscriptionPlan === 'network';
@@ -172,32 +189,48 @@ const Shipments = () => {
     try {
       const res = await axios.put(`/shipments/${shipment._id}`, { status: newStatus });
       if (res.data.success) {
+        showToast('Status Updated', `Shipment #${shipment.trackingNumber} status changed to ${newStatus}.`, 'success');
         fetchData();
         if (isModalOpen && currentShipment?._id === shipment._id) {
           setCurrentShipment({ ...currentShipment, status: newStatus });
         }
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update status.');
+      showToast('Update Failed', err.response?.data?.message || 'Failed to update status.', 'error');
     }
   };
 
-  const handleDeleteShipment = async (id) => {
-    if (window.confirm('Delete this shipment record permanently?')) {
-      try {
-        const res = await axios.delete(`/shipments/${id}`);
-        if (res.data.success) {
-          fetchData();
+  const handleDeleteShipment = (shipment) => {
+    const shipmentId = typeof shipment === 'object' ? shipment._id : shipment;
+    const trackNum = typeof shipment === 'object' ? shipment.trackingNumber : '';
+
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Shipment Record',
+      message: `Are you sure you want to permanently delete shipment #${trackNum}? All history, dispatch info, and customer links will be removed.`,
+      confirmText: 'Delete Shipment',
+      confirmVariant: 'danger',
+      onConfirm: async () => {
+        try {
+          setConfirmModal(prev => ({ ...prev, loading: true }));
+          const res = await axios.delete(`/shipments/${shipmentId}`);
+          if (res.data.success) {
+            setConfirmModal(prev => ({ ...prev, isOpen: false, loading: false }));
+            showToast('Shipment Deleted', `Shipment #${trackNum} has been permanently deleted.`, 'success');
+            fetchData();
+          }
+        } catch (err) {
+          setConfirmModal(prev => ({ ...prev, loading: false }));
+          showToast('Delete Failed', err.response?.data?.message || 'Failed to delete shipment.', 'error');
         }
-      } catch (err) {
-        alert(err.response?.data?.message || 'Failed to delete shipment.');
       }
-    }
+    });
   };
 
   const handleDownloadInvoice = async (shipment) => {
     if (shipment.status !== 'Delivered') return;
     try {
+      showToast('Generating Invoice', `Preparing PDF invoice for #${shipment.trackingNumber}...`, 'info');
       const res = await axios.get(`/shipments/${shipment._id}/invoice`, {
         responseType: 'blob' // Important for PDF
       });
@@ -209,8 +242,9 @@ const Shipments = () => {
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
+      showToast('Invoice Downloaded', `Invoice for #${shipment.trackingNumber} saved.`, 'success');
     } catch (err) {
-      alert('Failed to download invoice.');
+      showToast('Download Failed', 'Failed to generate and download invoice.', 'error');
       console.error(err);
     }
   };
@@ -347,7 +381,7 @@ const Shipments = () => {
                           <button onClick={() => openEditModal(shipment)} className="action-btn edit" title="Edit Shipment">
                             <Edit2 size={16} />
                           </button>
-                          <button onClick={() => handleDeleteShipment(shipment._id)} className="action-btn delete" title="Delete Shipment">
+                          <button onClick={() => handleDeleteShipment(shipment)} className="action-btn delete" title="Delete Shipment">
                             <Trash2 size={16} />
                           </button>
                         </>
@@ -708,6 +742,16 @@ const Shipments = () => {
           </div>
         </div>
       )}
+
+      {/* Luxury Confirm Modal & Toast */}
+      <ConfirmModal
+        {...confirmModal}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
+      <Toast
+        {...toast}
+        onClose={() => setToast(prev => ({ ...prev, show: false }))}
+      />
     </div>
   );
 };

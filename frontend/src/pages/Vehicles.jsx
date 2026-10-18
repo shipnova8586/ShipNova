@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Plus, Search, Edit2, Trash2, X, AlertCircle, Wrench, ShieldAlert, Activity } from 'lucide-react';
+import { ConfirmModal, Toast } from '../components/ConfirmModal';
 import './Pages.css';
 
 const Vehicles = () => {
@@ -27,6 +28,22 @@ const Vehicles = () => {
   const [maintenanceForm, setMaintenanceForm] = useState({ description: '', cost: '' });
 
   const [formError, setFormError] = useState('');
+
+  // Luxury Modal & Toast States
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Delete Vehicle',
+    confirmVariant: 'danger',
+    onConfirm: null,
+    loading: false
+  });
+  const [toast, setToast] = useState({ show: false, title: '', message: '', type: 'success' });
+
+  const showToast = (title, message, type = 'success') => {
+    setToast({ show: true, title, message, type });
+  };
 
   // Fetch Vehicles and Drivers
   const fetchData = async () => {
@@ -102,17 +119,31 @@ const Vehicles = () => {
     }
   };
 
-  const handleDeleteVehicle = async (id) => {
-    if (window.confirm('Are you sure you want to delete this vehicle?')) {
-      try {
-        const res = await axios.delete(`/vehicles/${id}`);
-        if (res.data.success) {
-          fetchData();
+  const handleDeleteVehicle = (vehicle) => {
+    const vehicleId = typeof vehicle === 'object' ? vehicle._id : vehicle;
+    const vehicleNumber = typeof vehicle === 'object' ? vehicle.vehicleNumber : 'this vehicle';
+
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Fleet Vehicle',
+      message: `Are you sure you want to permanently delete vehicle "${vehicleNumber}"? This record and its maintenance history will be permanently removed.`,
+      confirmText: 'Delete Vehicle',
+      confirmVariant: 'danger',
+      onConfirm: async () => {
+        try {
+          setConfirmModal(prev => ({ ...prev, loading: true }));
+          const res = await axios.delete(`/vehicles/${vehicleId}`);
+          if (res.data.success) {
+            setConfirmModal(prev => ({ ...prev, isOpen: false, loading: false }));
+            showToast('Vehicle Deleted', `${vehicleNumber} has been removed from fleet.`, 'success');
+            fetchData();
+          }
+        } catch (err) {
+          setConfirmModal(prev => ({ ...prev, loading: false }));
+          showToast('Delete Failed', err.response?.data?.message || 'Failed to delete vehicle.', 'error');
         }
-      } catch (err) {
-        alert(err.response?.data?.message || 'Failed to delete vehicle.');
       }
-    }
+    });
   };
 
   const openMaintenanceModal = (vehicle) => {
@@ -130,9 +161,10 @@ const Vehicles = () => {
         // Update activeVehicle locally to show the new log instantly
         setActiveVehicle(res.data.data);
         setMaintenanceForm({ description: '', cost: '' });
+        showToast('Maintenance Recorded', 'Maintenance log has been added successfully.', 'success');
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to add maintenance log.');
+      showToast('Error', err.response?.data?.message || 'Failed to add maintenance log.', 'error');
     }
   };
 
@@ -229,7 +261,7 @@ const Vehicles = () => {
                       <button onClick={() => openEditModal(vehicle)} className="action-btn edit" title="Edit Vehicle">
                         <Edit2 size={16} />
                       </button>
-                      <button onClick={() => handleDeleteVehicle(vehicle._id)} className="action-btn delete" title="Delete Vehicle">
+                      <button onClick={() => handleDeleteVehicle(vehicle)} className="action-btn delete" title="Delete Vehicle">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -410,6 +442,16 @@ const Vehicles = () => {
           </div>
         </div>
       )}
+
+      {/* Luxury Confirm Modal & Toast */}
+      <ConfirmModal
+        {...confirmModal}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
+      <Toast
+        {...toast}
+        onClose={() => setToast(prev => ({ ...prev, show: false }))}
+      />
     </div>
   );
 };

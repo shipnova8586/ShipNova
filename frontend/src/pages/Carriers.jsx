@@ -1,12 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Search, MapPin, UserCheck, CheckCircle, ShieldAlert, Power, Trash2 } from 'lucide-react';
+import { ConfirmModal, Toast } from '../components/ConfirmModal';
 import './Pages.css';
 
 const Carriers = () => {
   const [carriers, setCarriers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Luxury Modal & Toast States
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Confirm',
+    confirmVariant: 'danger',
+    onConfirm: null,
+    loading: false
+  });
+  const [toast, setToast] = useState({ show: false, title: '', message: '', type: 'success' });
+
+  const showToast = (title, message, type = 'success') => {
+    setToast({ show: true, title, message, type });
+  };
 
   const fetchCarriers = async () => {
     try {
@@ -26,44 +43,87 @@ const Carriers = () => {
     fetchCarriers();
   }, []);
 
-  const handleVerifyDriver = async (id) => {
-    if (window.confirm('Verify this external carrier? They will be allowed to bid on loads.')) {
-      try {
-        const res = await axios.put(`/drivers/${id}/verify`);
-        if (res.data.success) {
-          fetchCarriers();
+  const handleVerifyDriver = (carrier) => {
+    const carrierId = typeof carrier === 'object' ? carrier._id : carrier;
+    const carrierName = typeof carrier === 'object' ? carrier.name : 'this carrier';
+
+    setConfirmModal({
+      isOpen: true,
+      title: 'Verify External Carrier KYC',
+      message: `Verify KYC documents for "${carrierName}"? They will be authorized to view the public load board and bid on shipments.`,
+      confirmText: 'Verify Carrier',
+      confirmVariant: 'success',
+      onConfirm: async () => {
+        try {
+          setConfirmModal(prev => ({ ...prev, loading: true }));
+          const res = await axios.put(`/drivers/${carrierId}/verify`);
+          if (res.data.success) {
+            setConfirmModal(prev => ({ ...prev, isOpen: false, loading: false }));
+            showToast('Carrier Verified', `${carrierName} has been verified successfully.`, 'success');
+            fetchCarriers();
+          }
+        } catch (err) {
+          setConfirmModal(prev => ({ ...prev, loading: false }));
+          showToast('Verification Failed', err.response?.data?.message || 'Failed to verify driver.', 'error');
         }
-      } catch (err) {
-        alert(err.response?.data?.message || 'Failed to verify driver.');
       }
-    }
+    });
   };
 
-  const handleToggleStatus = async (id, currentStatus) => {
+  const handleToggleStatus = (carrier) => {
+    const carrierId = typeof carrier === 'object' ? carrier._id : carrier;
+    const carrierName = typeof carrier === 'object' ? carrier.name : 'this carrier';
+    const currentStatus = typeof carrier === 'object' ? carrier.status : 'Active';
     const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
-    if (window.confirm(`Are you sure you want to mark this carrier as ${newStatus}?`)) {
-      try {
-        const res = await axios.put(`/drivers/${id}`, { status: newStatus });
-        if (res.data.success) {
-          fetchCarriers();
+
+    setConfirmModal({
+      isOpen: true,
+      title: `${newStatus === 'Active' ? 'Activate' : 'Suspend'} Carrier`,
+      message: `Are you sure you want to change status of "${carrierName}" to ${newStatus}?`,
+      confirmText: newStatus === 'Active' ? 'Activate Carrier' : 'Suspend Carrier',
+      confirmVariant: newStatus === 'Active' ? 'success' : 'danger',
+      onConfirm: async () => {
+        try {
+          setConfirmModal(prev => ({ ...prev, loading: true }));
+          const res = await axios.put(`/drivers/${carrierId}`, { status: newStatus });
+          if (res.data.success) {
+            setConfirmModal(prev => ({ ...prev, isOpen: false, loading: false }));
+            showToast('Status Updated', `${carrierName} is now ${newStatus}.`, 'success');
+            fetchCarriers();
+          }
+        } catch (err) {
+          setConfirmModal(prev => ({ ...prev, loading: false }));
+          showToast('Update Failed', err.response?.data?.message || 'Failed to update carrier status.', 'error');
         }
-      } catch (err) {
-        alert(err.response?.data?.message || 'Failed to update carrier status.');
       }
-    }
+    });
   };
 
-  const handleDeleteDriver = async (id) => {
-    if (window.confirm('Are you sure you want to permanently delete this carrier?')) {
-      try {
-        const res = await axios.delete(`/drivers/${id}`);
-        if (res.data.success) {
-          fetchCarriers();
+  const handleDeleteDriver = (carrier) => {
+    const carrierId = typeof carrier === 'object' ? carrier._id : carrier;
+    const carrierName = typeof carrier === 'object' ? carrier.name : 'this carrier';
+
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Carrier',
+      message: `Are you sure you want to permanently delete carrier "${carrierName}"? They will be removed from your network directory.`,
+      confirmText: 'Delete Carrier',
+      confirmVariant: 'danger',
+      onConfirm: async () => {
+        try {
+          setConfirmModal(prev => ({ ...prev, loading: true }));
+          const res = await axios.delete(`/drivers/${carrierId}`);
+          if (res.data.success) {
+            setConfirmModal(prev => ({ ...prev, isOpen: false, loading: false }));
+            showToast('Carrier Deleted', `${carrierName} has been deleted.`, 'success');
+            fetchCarriers();
+          }
+        } catch (err) {
+          setConfirmModal(prev => ({ ...prev, loading: false }));
+          showToast('Delete Failed', err.response?.data?.message || 'Failed to delete carrier.', 'error');
         }
-      } catch (err) {
-        alert(err.response?.data?.message || 'Failed to delete carrier.');
       }
-    }
+    });
   };
 
   const filteredCarriers = carriers.filter(carrier =>
@@ -180,7 +240,7 @@ const Carriers = () => {
                   <td>
                     {!carrier.isVerified ? (
                       <button 
-                        onClick={() => handleVerifyDriver(carrier._id)} 
+                        onClick={() => handleVerifyDriver(carrier)} 
                         style={{ padding: '6px 12px', background: '#00e5ff', color: '#0f172a', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
                       >
                         Verify KYC
@@ -188,7 +248,7 @@ const Carriers = () => {
                     ) : (
                       <div style={{ display: 'flex', gap: '10px' }}>
                         <button 
-                          onClick={() => handleToggleStatus(carrier._id, carrier.status)}
+                          onClick={() => handleToggleStatus(carrier)}
                           className="btn-icon" 
                           title={carrier.status === 'Active' ? "Suspend Carrier" : "Activate Carrier"}
                           style={{ color: carrier.status === 'Active' ? '#f59e0b' : '#10b981', background: 'transparent', border: 'none', cursor: 'pointer' }}
@@ -196,7 +256,7 @@ const Carriers = () => {
                           <Power size={18} />
                         </button>
                         <button 
-                          onClick={() => handleDeleteDriver(carrier._id)}
+                          onClick={() => handleDeleteDriver(carrier)}
                           className="btn-icon" 
                           title="Delete Carrier"
                           style={{ color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer' }}
@@ -212,6 +272,16 @@ const Carriers = () => {
           </table>
         </div>
       )}
+
+      {/* Luxury Confirm Modal & Toast */}
+      <ConfirmModal
+        {...confirmModal}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
+      <Toast
+        {...toast}
+        onClose={() => setToast(prev => ({ ...prev, show: false }))}
+      />
     </div>
   );
 };

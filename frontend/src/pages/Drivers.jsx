@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Plus, Search, Edit2, Trash2, X, AlertCircle, MapPin, Star, Power } from 'lucide-react';
+import { ConfirmModal, Toast } from '../components/ConfirmModal';
 import './Pages.css';
 
 const Drivers = () => {
@@ -23,6 +24,22 @@ const Drivers = () => {
   });
 
   const [formError, setFormError] = useState('');
+
+  // Luxury Modal & Toast States
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Delete Driver',
+    confirmVariant: 'danger',
+    onConfirm: null,
+    loading: false
+  });
+  const [toast, setToast] = useState({ show: false, title: '', message: '', type: 'success' });
+
+  const showToast = (title, message, type = 'success') => {
+    setToast({ show: true, title, message, type });
+  };
 
   // Fetch Drivers
   const fetchDrivers = async () => {
@@ -91,17 +108,31 @@ const Drivers = () => {
     }
   };
 
-  const handleDeleteDriver = async (id) => {
-    if (window.confirm('Are you sure you want to delete this driver?')) {
-      try {
-        const res = await axios.delete(`/drivers/${id}`);
-        if (res.data.success) {
-          fetchDrivers();
+  const handleDeleteDriver = (driver) => {
+    const driverId = typeof driver === 'object' ? driver._id : driver;
+    const driverName = typeof driver === 'object' ? driver.name : 'this driver';
+
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Driver',
+      message: `Are you sure you want to permanently delete driver "${driverName}"? They will lose access to assigned trips.`,
+      confirmText: 'Delete Driver',
+      confirmVariant: 'danger',
+      onConfirm: async () => {
+        try {
+          setConfirmModal(prev => ({ ...prev, loading: true }));
+          const res = await axios.delete(`/drivers/${driverId}`);
+          if (res.data.success) {
+            setConfirmModal(prev => ({ ...prev, isOpen: false, loading: false }));
+            showToast('Driver Deleted', `${driverName} has been removed successfully.`, 'success');
+            fetchDrivers();
+          }
+        } catch (err) {
+          setConfirmModal(prev => ({ ...prev, loading: false }));
+          showToast('Delete Failed', err.response?.data?.message || 'Failed to delete driver.', 'error');
         }
-      } catch (err) {
-        alert(err.response?.data?.message || 'Failed to delete driver.');
       }
-    }
+    });
   };
 
   const handleToggleCurrentStatus = async (driver) => {
@@ -109,10 +140,11 @@ const Drivers = () => {
     try {
       const res = await axios.put(`/drivers/${driver._id}`, { currentStatus: nextStatus });
       if (res.data.success) {
+        showToast('Driver Status Updated', `${driver.name} is now ${nextStatus}.`, 'success');
         fetchDrivers();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update live status.');
+      showToast('Status Update Failed', err.response?.data?.message || 'Failed to update live status.', 'error');
     }
   };
 
@@ -221,7 +253,7 @@ const Drivers = () => {
                       <button onClick={() => openEditModal(driver)} className="action-btn edit" title="Edit Driver">
                         <Edit2 size={16} />
                       </button>
-                      <button onClick={() => handleDeleteDriver(driver._id)} className="action-btn delete" title="Delete Driver">
+                      <button onClick={() => handleDeleteDriver(driver)} className="action-btn delete" title="Delete Driver">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -341,6 +373,16 @@ const Drivers = () => {
           </div>
         </div>
       )}
+
+      {/* Luxury Confirm Modal & Toast */}
+      <ConfirmModal
+        {...confirmModal}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
+      <Toast
+        {...toast}
+        onClose={() => setToast(prev => ({ ...prev, show: false }))}
+      />
     </div>
   );
 };
