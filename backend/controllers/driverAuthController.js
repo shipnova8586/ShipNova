@@ -196,6 +196,20 @@ const placeBid = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Only external carriers can place bids' })
     }
 
+    if (!driver.isVerified) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Your profile is pending KYC verification. Admin must verify your account before you can place bids.' 
+      })
+    }
+
+    if (driver.currentStatus === 'Off Duty') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'You are currently Off Duty. Please update your status to Available before placing bids.' 
+      })
+    }
+
     const { amount } = req.body
 
     const bid = await Bid.create({

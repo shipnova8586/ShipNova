@@ -134,9 +134,32 @@ const ExternalDashboard = () => {
     };
   }, []);
 
+  const handleQuickSetAvailable = async () => {
+    try {
+      setUpdatingStatus(true);
+      const token = localStorage.getItem('driverToken');
+      const res = await axios.put('/driver-auth/my-status', 
+        { currentStatus: 'Available' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data.success) {
+        setDriverProfile(prev => ({ ...prev, currentStatus: 'Available' }));
+        showToast('Now Available ✅', 'Your duty status is set to Available. You can now place bids!', 'success');
+      }
+    } catch (err) {
+      showToast('Error', 'Failed to update live status', 'error');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   const openBidModal = (load) => {
     if (driverProfile && !driverProfile.isVerified) {
       showToast('KYC Verification Required', 'Your profile is awaiting admin approval before you can place bids.', 'error');
+      return;
+    }
+    if (driverProfile && driverProfile.currentStatus === 'Off Duty') {
+      showToast('You are Off Duty ⛔', 'You cannot place bids while marked as Off Duty. Switch to Available in your Profile to bid.', 'error');
       return;
     }
     setBidModal({
@@ -446,6 +469,46 @@ const ExternalDashboard = () => {
               </div>
             </div>
             
+            {driverProfile?.currentStatus === 'Off Duty' && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                borderRadius: '12px',
+                padding: '12px 14px',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '10px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertTriangle size={18} color="#ef4444" style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.78rem', color: '#fca5a5' }}>
+                    You are currently <strong>Off Duty</strong>. Switch to <strong>Available</strong> to place bids.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleQuickSetAvailable}
+                  disabled={updatingStatus}
+                  style={{
+                    background: '#10b981',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '6px 12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)'
+                  }}
+                >
+                  Go Available
+                </button>
+              </div>
+            )}
+
             <div style={{ marginBottom: '20px', background: '#0f172a', padding: '15px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 <span style={{ color: '#9ca3af', fontSize: '0.9rem' }}><Settings size={14} style={{ verticalAlign: 'middle', marginRight: '5px' }}/> My Vehicle Type</span>
@@ -493,9 +556,50 @@ const ExternalDashboard = () => {
                     )}
                   </div>
 
-                  <button className="app-btn" onClick={() => openBidModal(load)} style={{ padding: '12px', fontSize: '0.95rem', fontWeight: 700, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #00e5ff, #0284c7)', color: '#000', border: 'none', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0, 229, 255, 0.25)' }}>
-                    <DollarSign size={18} /> Place Bid
-                  </button>
+                  {driverProfile?.currentStatus === 'Off Duty' ? (
+                    <button
+                      className="app-btn"
+                      onClick={() => openBidModal(load)}
+                      style={{
+                        padding: '12px',
+                        fontSize: '0.88rem',
+                        fontWeight: 700,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        color: '#f87171',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        borderRadius: '12px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <AlertTriangle size={16} /> Off Duty (Cannot Bid)
+                    </button>
+                  ) : (
+                    <button
+                      className="app-btn"
+                      onClick={() => openBidModal(load)}
+                      style={{
+                        padding: '12px',
+                        fontSize: '0.95rem',
+                        fontWeight: 700,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '8px',
+                        background: 'linear-gradient(135deg, #00e5ff, #0284c7)',
+                        color: '#000',
+                        border: 'none',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 15px rgba(0, 229, 255, 0.25)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <DollarSign size={18} /> Place Bid
+                    </button>
+                  )}
                 </div>
               ))
             )}
