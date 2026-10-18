@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Map, DollarSign, Briefcase, Navigation, CheckCircle, Clock, Wallet, MessageSquare, Settings } from 'lucide-react';
+import { Map, DollarSign, Briefcase, Navigation, CheckCircle, Clock, Wallet, MessageSquare, Settings, RefreshCw, Radio } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const ExternalDashboard = () => {
   const [publicLoads, setPublicLoads] = useState([]);
   const [myTrips, setMyTrips] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [driverProfile, setDriverProfile] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const isFetchingRef = useRef(false);
 
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
@@ -29,44 +31,74 @@ const ExternalDashboard = () => {
     }
   };
 
-  const fetchLoadsAndTrips = async () => {
+  const fetchLoadsAndTrips = async (silent = false) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    if (!silent) setIsRefreshing(true);
+
     try {
       const token = localStorage.getItem('driverToken');
-      // Fetch public loads via the driver-auth route
-      const loadsRes = await axios.get('/driver-auth/public-loads', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (loadsRes.data.success) {
-        setPublicLoads(loadsRes.data.data);
-      }
+      if (!token) return;
 
-      // Fetch assigned trips
-      const tripsRes = await axios.get('/driver-auth/my-trips', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (tripsRes.data.success) {
-        setMyTrips(tripsRes.data.data);
-      }
+      // Parallel fetch for speed
+      const [loadsRes, tripsRes, profileRes] = await Promise.allSettled([
+        axios.get('/driver-auth/public-loads', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('/driver-auth/my-trips', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('/driver-auth/profile', { headers: { Authorization: `Bearer ${token}` } })
+      ]);
 
-      // Fetch driver profile
-      const profileRes = await axios.get('/driver-auth/profile', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (profileRes.data.success) {
-        setDriverProfile(profileRes.data.data);
-        if (profileRes.data.data.vehicleType) {
-          setVehicleType(profileRes.data.data.vehicleType);
+      if (loadsRes.status === 'fulfilled' && loadsRes.value?.data?.success) {
+        setPublicLoads(loadsRes.value.data.data || []);
+      }
+      if (tripsRes.status === 'fulfilled' && tripsRes.value?.data?.success) {
+        setMyTrips(tripsRes.value.data.data || []);
+      }
+      if (profileRes.status === 'fulfilled' && profileRes.value?.data?.success) {
+        setDriverProfile(profileRes.value.data.data);
+        if (profileRes.value.data.data?.vehicleType) {
+          setVehicleType(profileRes.value.data.data.vehicleType);
         }
       }
     } catch (err) {
-      console.error('Failed to fetch data', err);
+      console.error('Failed to fetch driver data', err);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
+      isFetchingRef.current = false;
     }
   };
 
   useEffect(() => {
+    // 1. Initial fetch
     fetchLoadsAndTrips();
+
+    // 2. Real-time WebSocket event listener (Fired when admin accepts driver's bid)
+    const handleTripUpdate = (e) => {
+      fetchLoadsAndTrips(true);
+      // Automatically switch to 'trips' tab so the driver sees their won trip immediately!
+      setActiveTab('trips');
+    };
+
+    window.addEventListener('driver:tripUpdated', handleTripUpdate);
+    window.addEventListener('driver:bidAccepted', handleTripUpdate);
+
+    // 3. Auto-polling every 6 seconds for background real-time sync
+    const pollInterval = setInterval(() => {
+      fetchLoadsAndTrips(true);
+    }, 6000);
+
+    // 4. Auto-refresh when user returns to this browser tab
+    const handleFocus = () => {
+      fetchLoadsAndTrips(true);
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('driver:tripUpdated', handleTripUpdate);
+      window.removeEventListener('driver:bidAccepted', handleTripUpdate);
+      clearInterval(pollInterval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const placeBid = async (shipmentId) => {
@@ -158,12 +190,64 @@ const ExternalDashboard = () => {
         {activeTab === 'trips' && (
           <div style={{ marginBottom: '30px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h3 style={{ color: '#fff', fontSize: '1.2rem', margin: 0 }}>My Active Trips</h3>
-              <Briefcase size={20} color="#10b981" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ color: '#fff', fontSize: '1.2rem', margin: 0 }}>My Active Trips</h3>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  color: '#10b981',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  letterSpacing: '0.5px'
+                }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 6px #10b981' }}></span>
+                  LIVE
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => fetchLoadsAndTrips(false)}
+                  title="Refresh now"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '8px',
+                    padding: '6px 8px',
+                    color: isRefreshing ? '#00e5ff' : '#9ca3af',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '0.75rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <RefreshCw size={14} className={isRefreshing ? 'spin-icon' : ''} />
+                  <span>Sync</span>
+                </button>
+                <Briefcase size={20} color="#10b981" />
+              </div>
             </div>
             
             {myTrips.length === 0 ? (
-              <p style={{ color: '#9ca3af', textAlign: 'center', marginTop: '40px' }}>No active trips right now.</p>
+              <div style={{ textAlign: 'center', marginTop: '35px', padding: '20px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                <Briefcase size={36} color="#4b5563" style={{ marginBottom: '10px' }} />
+                <p style={{ color: '#fff', fontSize: '0.95rem', fontWeight: 600, margin: '0 0 6px 0' }}>No active trips right now</p>
+                <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: '0 0 16px 0' }}>When you win a bid on the Load Board, it appears here automatically in real time.</p>
+                <button
+                  className="app-btn"
+                  onClick={() => setActiveTab('board')}
+                  style={{ background: '#00e5ff', color: '#000', fontWeight: 'bold', padding: '10px 18px', width: 'auto', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Map size={16} /> View Load Board
+                </button>
+              </div>
             ) : (
               myTrips.map(trip => (
                 <div key={trip._id} className="trip-card" style={{ borderLeft: '4px solid #10b981' }}>
@@ -226,8 +310,49 @@ const ExternalDashboard = () => {
         {activeTab === 'board' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ color: '#fff', fontSize: '1.2rem', margin: 0 }}>Public Load Board</h3>
-              <Map size={20} color="#00e5ff" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ color: '#fff', fontSize: '1.2rem', margin: 0 }}>Public Load Board</h3>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: 'rgba(0, 229, 255, 0.15)',
+                  color: '#00e5ff',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(0, 229, 255, 0.3)',
+                  letterSpacing: '0.5px'
+                }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00e5ff', display: 'inline-block', boxShadow: '0 0 6px #00e5ff' }}></span>
+                  LIVE
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => fetchLoadsAndTrips(false)}
+                  title="Refresh loads"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '8px',
+                    padding: '6px 8px',
+                    color: isRefreshing ? '#00e5ff' : '#9ca3af',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '0.75rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <RefreshCw size={14} className={isRefreshing ? 'spin-icon' : ''} />
+                  <span>Sync</span>
+                </button>
+                <Map size={20} color="#00e5ff" />
+              </div>
             </div>
             
             <div style={{ marginBottom: '20px', background: '#0f172a', padding: '15px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -403,9 +528,30 @@ const ExternalDashboard = () => {
           <Map size={20} />
           <span>Load Board</span>
         </button>
-        <button className={`driver-nav-item ${activeTab === 'trips' ? 'active' : ''}`} onClick={() => setActiveTab('trips')}>
+        <button className={`driver-nav-item ${activeTab === 'trips' ? 'active' : ''}`} onClick={() => setActiveTab('trips')} style={{ position: 'relative' }}>
           <Briefcase size={20} />
           <span>My Trips</span>
+          {myTrips.length > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: '2px',
+              right: '16px',
+              backgroundColor: '#10b981',
+              color: '#fff',
+              fontSize: '0.65rem',
+              fontWeight: 700,
+              minWidth: '17px',
+              height: '17px',
+              borderRadius: '9px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 4px',
+              boxShadow: '0 0 8px rgba(16, 185, 129, 0.6)'
+            }}>
+              {myTrips.length}
+            </span>
+          )}
         </button>
         <button className={`driver-nav-item ${activeTab === 'earnings' ? 'active' : ''}`} onClick={() => setActiveTab('earnings')}>
           <Wallet size={20} />

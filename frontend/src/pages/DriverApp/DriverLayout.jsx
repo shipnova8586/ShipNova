@@ -26,9 +26,17 @@ const DriverLayout = () => {
       });
 
       socket.on('bidAccepted', (data) => {
-        setNotification(data.message);
+        setNotification(data.message || 'Congratulations! You won the bid!');
         // Auto hide notification after 5 seconds
         setTimeout(() => setNotification(null), 5000);
+        window.dispatchEvent(new CustomEvent('driver:bidAccepted', { detail: data }));
+        window.dispatchEvent(new CustomEvent('driver:tripUpdated', { detail: data }));
+      });
+
+      socket.on('tripAssigned', (data) => {
+        setNotification(data.message || 'A new trip has been assigned to you!');
+        setTimeout(() => setNotification(null), 5000);
+        window.dispatchEvent(new CustomEvent('driver:tripUpdated', { detail: data }));
       });
 
       return () => {

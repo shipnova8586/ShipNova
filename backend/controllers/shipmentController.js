@@ -167,6 +167,18 @@ const updateShipment = async (req, res) => {
       }).catch(err => console.error('Failed to send Assigned email:', err))
     }
 
+    // Trigger Real-time WebSocket event to Driver
+    if (shipment.driverId) {
+      const io = req.app.get('io')
+      if (io) {
+        io.to(shipment.driverId.toString()).emit('tripAssigned', {
+          shipmentId: shipment._id,
+          trackingNumber: shipment.trackingNumber,
+          message: `New trip assigned: ${shipment.trackingNumber}`
+        })
+      }
+    }
+
     // Trigger Invoice Email if status just changed to Delivered
     if (wasNotDelivered && isNowDelivered && shipment.customerId && shipment.customerId.email) {
       // Async trigger, don't block the API response

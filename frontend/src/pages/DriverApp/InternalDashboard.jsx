@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Navigation, CheckCircle, Clock, Wallet, MessageSquare, Briefcase, Settings } from 'lucide-react';
+import { Navigation, CheckCircle, Clock, Wallet, MessageSquare, Briefcase, Settings, RefreshCw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const InternalDashboard = () => {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [driverProfile, setDriverProfile] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const isFetchingRef = useRef(false);
 
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
@@ -29,32 +31,61 @@ const InternalDashboard = () => {
     }
   };
 
-  const fetchTrips = async () => {
+  const fetchTrips = async (silent = false) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    if (!silent) setIsRefreshing(true);
+
     try {
       const token = localStorage.getItem('driverToken');
-      const res = await axios.get('/driver-auth/my-trips', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data.success) {
-        setTrips(res.data.data);
-      }
+      if (!token) return;
 
-      // Fetch driver profile
-      const profileRes = await axios.get('/driver-auth/profile', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (profileRes.data.success) {
-        setDriverProfile(profileRes.data.data);
+      const [tripsRes, profileRes] = await Promise.allSettled([
+        axios.get('/driver-auth/my-trips', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('/driver-auth/profile', { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+
+      if (tripsRes.status === 'fulfilled' && tripsRes.value?.data?.success) {
+        setTrips(tripsRes.value.data.data || []);
+      }
+      if (profileRes.status === 'fulfilled' && profileRes.value?.data?.success) {
+        setDriverProfile(profileRes.value.data.data);
       }
     } catch (err) {
-      console.error('Failed to fetch data', err);
+      console.error('Failed to fetch internal driver data', err);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
+      isFetchingRef.current = false;
     }
   };
 
   useEffect(() => {
     fetchTrips();
+
+    // 1. WebSocket custom event listener
+    const handleTripUpdate = (e) => {
+      fetchTrips(true);
+      setActiveTab('trips');
+    };
+    window.addEventListener('driver:tripUpdated', handleTripUpdate);
+
+    // 2. Auto-polling every 6 seconds
+    const pollInterval = setInterval(() => {
+      fetchTrips(true);
+    }, 6000);
+
+    // 3. Auto-refresh when returning to tab
+    const handleFocus = () => {
+      fetchTrips(true);
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('driver:tripUpdated', handleTripUpdate);
+      clearInterval(pollInterval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const [activeTab, setActiveTab] = useState('trips'); // 'trips' or 'earnings'
@@ -103,12 +134,57 @@ const InternalDashboard = () => {
         {activeTab === 'trips' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h3 style={{ color: '#fff', fontSize: '1.2rem', margin: 0 }}>My Assigned Trips</h3>
-              <Briefcase size={20} color="#10b981" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ color: '#fff', fontSize: '1.2rem', margin: 0 }}>My Assigned Trips</h3>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  color: '#10b981',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  letterSpacing: '0.5px'
+                }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 6px #10b981' }}></span>
+                  LIVE
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => fetchTrips(false)}
+                  title="Refresh now"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '8px',
+                    padding: '6px 8px',
+                    color: isRefreshing ? '#00e5ff' : '#9ca3af',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '0.75rem',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <RefreshCw size={14} className={isRefreshing ? 'spin-icon' : ''} />
+                  <span>Sync</span>
+                </button>
+                <Briefcase size={20} color="#10b981" />
+              </div>
             </div>
             
             {trips.length === 0 ? (
-              <p style={{ color: '#9ca3af', textAlign: 'center', marginTop: '40px' }}>No trips assigned today.</p>
+              <div style={{ textAlign: 'center', marginTop: '35px', padding: '20px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                <Briefcase size={36} color="#4b5563" style={{ marginBottom: '10px' }} />
+                <p style={{ color: '#fff', fontSize: '0.95rem', fontWeight: 600, margin: '0 0 6px 0' }}>No trips assigned today</p>
+                <p style={{ color: '#9ca3af', fontSize: '0.8rem', margin: 0 }}>New deliveries dispatched by company manager will appear here live in real-time.</p>
+              </div>
             ) : (
               trips.map(trip => (
                 <div key={trip._id} className="trip-card">
@@ -284,9 +360,31 @@ const InternalDashboard = () => {
         <button 
           className={`driver-nav-item ${activeTab === 'trips' ? 'active' : ''}`}
           onClick={() => setActiveTab('trips')}
+          style={{ position: 'relative' }}
         >
           <Briefcase size={20} />
           <span>My Trips</span>
+          {trips.length > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: '2px',
+              right: '16px',
+              backgroundColor: '#10b981',
+              color: '#fff',
+              fontSize: '0.65rem',
+              fontWeight: 700,
+              minWidth: '17px',
+              height: '17px',
+              borderRadius: '9px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 4px',
+              boxShadow: '0 0 8px rgba(16, 185, 129, 0.6)'
+            }}>
+              {trips.length}
+            </span>
+          )}
         </button>
         <button 
           className={`driver-nav-item ${activeTab === 'earnings' ? 'active' : ''}`}
