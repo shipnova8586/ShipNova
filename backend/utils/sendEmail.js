@@ -1,10 +1,56 @@
 const nodemailer = require('nodemailer')
 const path = require('path')
+const fs = require('fs')
 
 const sendEmail = async (options) => {
+  const { to, subject, type, shipment, invoiceNum, pdfBuffer } = options
+  const baseUrl = process.env.FRONTEND_URL || 'https://shipnova-logistics.vercel.app'
+
+  // 1. Try Vercel Serverless Relay over HTTPS (Port 443)
+  // This bypasses cloud provider SMTP firewall blocks (like Render Free Tier port 25/465/587 blocks)
   try {
-    const { to, subject, type, shipment, invoiceNum, pdfBuffer } = options
-    const baseUrl = process.env.FRONTEND_URL || 'https://shipnova-logistics.vercel.app'
+    const payload = {
+      to,
+      subject,
+      type,
+      shipment: {
+        trackingNumber: shipment.trackingNumber,
+        status: shipment.status,
+        shipmentType: shipment.shipmentType,
+        weight: shipment.weight,
+        customerId: shipment.customerId ? {
+          name: shipment.customerId.name,
+          email: shipment.customerId.email
+        } : null
+      },
+      invoiceNum,
+      pdfBase64: pdfBuffer ? pdfBuffer.toString('base64') : null
+    }
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 25000)
+
+    const response = await fetch(`${baseUrl}/api/send-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    })
+    clearTimeout(timeoutId)
+
+    if (response.ok) {
+      const data = await response.json()
+      if (data && data.success) {
+        console.log('Premium Email sent via Vercel HTTPS relay:', data.messageId)
+        return true
+      }
+    }
+  } catch (vercelError) {
+    console.warn('Vercel HTTPS email relay failed or unreachable, trying direct SMTP fallback:', vercelError.message)
+  }
+
+  // 2. Direct SMTP Fallback (Runs on Localhost and environments with open SMTP ports)
+  try {
     const trackingUrl = `${baseUrl}/track?tracking=${shipment.trackingNumber}`
     const customerName = shipment.customerId ? shipment.customerId.name : 'Valued Customer'
 
@@ -83,7 +129,6 @@ const sendEmail = async (options) => {
       </div>
     `
 
-    const fs = require('fs')
     const logoPath = path.join(__dirname, '../public/logo.png')
     const attachments = []
     if (fs.existsSync(logoPath)) {
@@ -111,11 +156,11 @@ const sendEmail = async (options) => {
     }
 
     const info = await transporter.sendMail(mailOptions)
-    console.log('Premium Email sent: %s', info.messageId)
+    console.log('Premium Email sent via direct SMTP: %s', info.messageId)
 
     return true
   } catch (error) {
-    console.error('Error sending premium email:', error)
+    console.error('Error sending email:', error)
     throw error
   }
 }

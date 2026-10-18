@@ -103,9 +103,9 @@ const createShipment = async (req, res) => {
             subject: 'Shipment Assigned - ShipNova',
             type: 'ASSIGNED',
             shipment: populatedShipment
-          })
+          }).catch(err => console.error('Failed to send Assigned email on create:', err))
         }
-      })
+      }).catch(err => console.error('Failed to populate customer on create:', err))
     }
 
     res.status(201).json({
