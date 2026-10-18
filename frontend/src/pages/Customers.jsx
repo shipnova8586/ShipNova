@@ -22,6 +22,7 @@ const Customers = () => {
   });
 
   const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   // Luxury Modal & Toast States
   const [confirmModal, setConfirmModal] = useState({
@@ -85,23 +86,29 @@ const Customers = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return; // Prevent double submission
     setFormError('');
+    setSubmitting(true);
     try {
       if (modalMode === 'add') {
         const res = await axios.post('/customers', formData);
         if (res.data.success) {
+          showToast('Customer Created', `Customer "${formData.name}" added successfully!`, 'success');
           fetchCustomers();
           setIsModalOpen(false);
         }
       } else {
         const res = await axios.put(`/customers/${currentCustomerId}`, formData);
         if (res.data.success) {
+          showToast('Customer Updated', `Customer "${formData.name}" updated successfully!`, 'success');
           fetchCustomers();
           setIsModalOpen(false);
         }
       }
     } catch (err) {
       setFormError(err.response?.data?.message || 'Something went wrong saving customer details.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -289,11 +296,18 @@ const Customers = () => {
               </div>
 
               <div className="modal-footer">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary" disabled={submitting}>
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  {modalMode === 'add' ? 'Add Customer' : 'Save Changes'}
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                  {submitting ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', display: 'inline-block' }}></span>
+                      <span>{modalMode === 'add' ? 'Adding...' : 'Saving...'}</span>
+                    </span>
+                  ) : (
+                    modalMode === 'add' ? 'Add Customer' : 'Save Changes'
+                  )}
                 </button>
               </div>
             </form>

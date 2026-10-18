@@ -55,6 +55,30 @@ const createCustomer = async (req, res) => {
     // Inject companyId from token middleware
     req.body.companyId = req.tenantId
 
+    const email = req.body.email ? req.body.email.toLowerCase().trim() : ''
+    const phone = req.body.phone ? req.body.phone.trim() : ''
+
+    if (email || phone) {
+      const orConditions = []
+      if (email) orConditions.push({ email })
+      if (phone) orConditions.push({ phone })
+
+      const existingCustomer = await Customer.findOne({
+        companyId: req.tenantId,
+        $or: orConditions
+      })
+
+      if (existingCustomer) {
+        return res.status(400).json({
+          success: false,
+          message: `A customer with this ${existingCustomer.phone === phone ? 'phone number' : 'email address'} already exists.`
+        })
+      }
+    }
+
+    if (email) req.body.email = email
+    if (phone) req.body.phone = phone
+
     const customer = await Customer.create(req.body)
 
     res.status(201).json({
@@ -83,6 +107,31 @@ const updateCustomer = async (req, res) => {
         message: 'Customer not found or unauthorized.'
       })
     }
+
+    const email = req.body.email ? req.body.email.toLowerCase().trim() : null
+    const phone = req.body.phone ? req.body.phone.trim() : null
+
+    if (email || phone) {
+      const orConditions = []
+      if (email) orConditions.push({ email })
+      if (phone) orConditions.push({ phone })
+
+      const duplicate = await Customer.findOne({
+        companyId: req.tenantId,
+        _id: { $ne: req.params.id },
+        $or: orConditions
+      })
+
+      if (duplicate) {
+        return res.status(400).json({
+          success: false,
+          message: `Another customer with this ${duplicate.phone === phone ? 'phone number' : 'email address'} already exists.`
+        })
+      }
+    }
+
+    if (email) req.body.email = email
+    if (phone) req.body.phone = phone
 
     customer = await Customer.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
