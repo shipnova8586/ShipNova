@@ -255,3 +255,115 @@
 .spin-icon {
   animation: spin 0.8s linear infinite;
 }
+
+/* In-App Mobile Modal System */
+.driver-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(11, 15, 25, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.driver-modal-sheet {
+  width: 100%;
+  background: #131c2e;
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: none;
+  padding: 20px 20px 28px;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 90%;
+  overflow-y: auto;
+}
+
+.modal-handle-bar {
+  width: 36px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  margin: 0 auto 16px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* Quick Bid Preset Chips */
+.quick-bid-chip {
+  flex: 1;
+  padding: 7px 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #00e5ff;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+.quick-bid-chip:hover, .quick-bid-chip:active {
+  background: rgba(0, 229, 255, 0.15);
+  border-color: #00e5ff;
+  transform: translateY(-1px);
+}
+
+/* In-App Floating Toast */
+.driver-toast {
+  position: absolute;
+  top: 55px;
+  left: 14px;
+  right: 14px;
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  z-index: 2500;
+  animation: toastSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.driver-toast-success {
+  background: linear-gradient(135deg, #064e3b, #0f172a);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.driver-toast-error {
+  background: linear-gradient(135deg, #7f1d1d, #0f172a);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.driver-toast-info {
+  background: linear-gradient(135deg, #1e3a8a, #0f172a);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+@keyframes toastSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

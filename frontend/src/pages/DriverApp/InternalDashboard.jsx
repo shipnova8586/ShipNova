@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Navigation, CheckCircle, Clock, Wallet, MessageSquare, Briefcase, Settings, RefreshCw } from 'lucide-react';
+import { 
+  Navigation, CheckCircle, Clock, Wallet, MessageSquare, Briefcase, 
+  Settings, RefreshCw, X, AlertTriangle, CheckCircle2, Info 
+} from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const InternalDashboard = () => {
@@ -10,6 +13,26 @@ const InternalDashboard = () => {
   const [driverProfile, setDriverProfile] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const isFetchingRef = useRef(false);
+
+  // In-App Toast & Modal States
+  const [toast, setToast] = useState({ show: false, type: 'success', title: '', message: '' });
+  const toastTimeoutRef = useRef(null);
+
+  const showToast = (title, message, type = 'success') => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToast({ show: true, type, title, message });
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(prev => ({ ...prev, show: false }));
+    }, 4500);
+  };
+
+  const [issueModal, setIssueModal] = useState({
+    isOpen: false,
+    tripId: null,
+    selectedTag: 'Vehicle Breakdown',
+    customText: '',
+    submitting: false
+  });
 
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
@@ -22,10 +45,10 @@ const InternalDashboard = () => {
       );
       if (res.data.success) {
         setDriverProfile({ ...driverProfile, currentStatus: newStatus });
+        showToast('Duty Status Changed', `You are now marked as ${newStatus}`, 'success');
       }
     } catch (err) {
-      console.error('Failed to update live status:', err);
-      alert('Failed to update live status');
+      showToast('Error', 'Failed to update live status', 'error');
     } finally {
       setUpdatingStatus(false);
     }
@@ -90,23 +113,42 @@ const InternalDashboard = () => {
 
   const [activeTab, setActiveTab] = useState('trips'); // 'trips' or 'earnings'
 
-  const reportIssue = async (id) => {
-    const issue = prompt("Describe the issue (e.g., breakdown, heavy traffic):");
-    if (!issue) return;
+  const openIssueModal = (tripId) => {
+    setIssueModal({
+      isOpen: true,
+      tripId,
+      selectedTag: 'Vehicle Breakdown',
+      customText: '',
+      submitting: false
+    });
+  };
+
+  const closeIssueModal = () => {
+    if (issueModal.submitting) return;
+    setIssueModal({ isOpen: false, tripId: null, selectedTag: 'Vehicle Breakdown', customText: '', submitting: false });
+  };
+
+  const handleIssueSubmit = async (e) => {
+    if (e) e.preventDefault();
+    const finalDescription = issueModal.customText.trim()
+      ? `[${issueModal.selectedTag}] ${issueModal.customText.trim()}`
+      : `[${issueModal.selectedTag}] Reported by internal driver`;
 
     try {
+      setIssueModal(prev => ({ ...prev, submitting: true }));
       const token = localStorage.getItem('driverToken');
-      const res = await axios.post(`/driver-auth/shipments/${id}/issue`, 
-        { issue },
+      const res = await axios.post(`/driver-auth/shipments/${issueModal.tripId}/issue`, 
+        { issue: finalDescription },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.data.success) {
-        alert('Issue reported successfully. Admin will be notified.');
-        fetchTrips();
+        closeIssueModal();
+        showToast('Incident Reported ⚠️', 'Fleet operations has been notified.', 'info');
+        fetchTrips(true);
       }
     } catch (err) {
-      console.error('Failed to report issue:', err);
-      alert('Failed to report issue');
+      showToast('Report Failed', err.response?.data?.message || 'Failed to report issue', 'error');
+      setIssueModal(prev => ({ ...prev, submitting: false }));
     }
   };
 
@@ -118,11 +160,11 @@ const InternalDashboard = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.data.success) {
-        fetchTrips();
+        showToast('Trip Status Updated', `Status changed to ${newStatus}`, 'success');
+        fetchTrips(true);
       }
     } catch (err) {
-      console.error('Failed to update status:', err);
-      alert('Failed to update status');
+      showToast('Update Failed', 'Failed to update trip status', 'error');
     }
   };
 
@@ -215,8 +257,8 @@ const InternalDashboard = () => {
 
             {trip.status !== 'Delivered' && (
               <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-                <button className="app-btn" onClick={() => reportIssue(trip._id)} style={{ flex: 1, padding: '10px', fontSize: '0.85rem', background: '#ef4444', color: '#fff', border: 'none' }}>
-                  <MessageSquare size={14} style={{ marginRight: '5px', verticalAlign: 'middle' }} /> Report Issue
+                <button className="app-btn" onClick={() => openIssueModal(trip._id)} style={{ flex: 1, padding: '10px', fontSize: '0.85rem', background: 'linear-gradient(135deg, #ef4444, #b91c1c)', color: '#fff', border: 'none', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <MessageSquare size={14} /> Report Issue
                 </button>
               </div>
             )}
@@ -401,6 +443,123 @@ const InternalDashboard = () => {
           <span>Profile</span>
         </button>
       </div>
+
+      {/* IN-APP TOAST NOTIFICATION */}
+      {toast.show && (
+        <div className={`driver-toast driver-toast-${toast.type}`}>
+          {toast.type === 'success' && <CheckCircle2 size={20} color="#10b981" style={{ flexShrink: 0, marginTop: '2px' }} />}
+          {toast.type === 'error' && <AlertTriangle size={20} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />}
+          {toast.type === 'info' && <Info size={20} color="#38bdf8" style={{ flexShrink: 0, marginTop: '2px' }} />}
+          <div style={{ flex: 1 }}>
+            <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }}>{toast.title}</div>
+            <div style={{ color: '#cbd5e1', fontSize: '0.75rem', marginTop: '2px', lineHeight: '1.3' }}>{toast.message}</div>
+          </div>
+          <button
+            onClick={() => setToast(prev => ({ ...prev, show: false }))}
+            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* IN-APP ISSUE REPORT MODAL */}
+      {issueModal.isOpen && (
+        <div className="driver-modal-overlay" onClick={closeIssueModal}>
+          <div className="driver-modal-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-handle-bar"></div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <AlertTriangle size={20} color="#ef4444" />
+                </div>
+                <div>
+                  <h3 style={{ color: '#fff', fontSize: '1.1rem', margin: 0, fontWeight: 700 }}>Report Transit Incident</h3>
+                  <p style={{ color: '#94a3b8', fontSize: '0.75rem', margin: 0 }}>Fleet operations will be notified instantly</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeIssueModal}
+                style={{ background: 'rgba(255, 255, 255, 0.08)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Quick incident chips */}
+            <div style={{ marginBottom: '14px' }}>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>Select Incident Type:</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                {['Vehicle Breakdown', 'Heavy Traffic', 'Weather Delay', 'Flat Tire', 'Accident Ahead', 'Customer Absent'].map(tag => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setIssueModal(prev => ({ ...prev, selectedTag: tag }))}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      border: issueModal.selectedTag === tag ? '1px solid #ef4444' : '1px solid rgba(255,255,255,0.1)',
+                      background: issueModal.selectedTag === tag ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.04)',
+                      color: issueModal.selectedTag === tag ? '#ef4444' : '#cbd5e1',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <form onSubmit={handleIssueSubmit}>
+              <div style={{ marginBottom: '16px' }}>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>Additional Incident Details (Optional):</span>
+                <textarea
+                  rows={3}
+                  placeholder="Describe location, delay reason, or current vehicle condition..."
+                  value={issueModal.customText}
+                  onChange={(e) => setIssueModal(prev => ({ ...prev, customText: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    fontSize: '0.85rem',
+                    color: '#fff',
+                    background: '#0a0f1d',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '12px',
+                    outline: 'none',
+                    marginTop: '6px',
+                    resize: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={closeIssueModal}
+                  disabled={issueModal.submitting}
+                  style={{ flex: 1, padding: '12px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.06)', color: '#94a3b8', border: '1px solid rgba(255, 255, 255, 0.1)', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={issueModal.submitting}
+                  style={{ flex: 2, padding: '12px', borderRadius: '12px', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff', border: 'none', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: '0 4px 15px rgba(239, 68, 68, 0.35)' }}
+                >
+                  {issueModal.submitting ? <RefreshCw size={16} className="spin-icon" /> : 'Submit Incident Report'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 };

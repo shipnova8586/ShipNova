@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Map, DollarSign, Briefcase, Navigation, CheckCircle, Clock, Wallet, MessageSquare, Settings, RefreshCw, Radio } from 'lucide-react';
+import { 
+  Map, DollarSign, Briefcase, Navigation, CheckCircle, Clock, Wallet, 
+  MessageSquare, Settings, RefreshCw, Radio, X, AlertTriangle, CheckCircle2, 
+  Send, Sparkles, ChevronRight, Info 
+} from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const ExternalDashboard = () => {
@@ -11,6 +15,34 @@ const ExternalDashboard = () => {
   const [driverProfile, setDriverProfile] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const isFetchingRef = useRef(false);
+
+  // In-App Toast & Modal States
+  const [toast, setToast] = useState({ show: false, type: 'success', title: '', message: '' });
+  const toastTimeoutRef = useRef(null);
+
+  const showToast = (title, message, type = 'success') => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToast({ show: true, type, title, message });
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(prev => ({ ...prev, show: false }));
+    }, 4500);
+  };
+
+  const [bidModal, setBidModal] = useState({
+    isOpen: false,
+    load: null,
+    amount: '',
+    submitting: false,
+    error: ''
+  });
+
+  const [issueModal, setIssueModal] = useState({
+    isOpen: false,
+    tripId: null,
+    selectedTag: 'Vehicle Breakdown',
+    customText: '',
+    submitting: false
+  });
 
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
@@ -23,9 +55,10 @@ const ExternalDashboard = () => {
       );
       if (res.data.success) {
         setDriverProfile({ ...driverProfile, currentStatus: newStatus });
+        showToast('Status Updated', `You are now marked as ${newStatus}`, 'success');
       }
     } catch (err) {
-      alert('Failed to update live status');
+      showToast('Status Error', 'Failed to update live status', 'error');
     } finally {
       setUpdatingStatus(false);
     }
@@ -101,29 +134,59 @@ const ExternalDashboard = () => {
     };
   }, []);
 
-  const placeBid = async (shipmentId) => {
+  const openBidModal = (load) => {
     if (driverProfile && !driverProfile.isVerified) {
-      alert("Your profile is pending verification. Admin must verify your KYC before you can place bids.");
+      showToast('KYC Verification Required', 'Your profile is awaiting admin approval before you can place bids.', 'error');
+      return;
+    }
+    setBidModal({
+      isOpen: true,
+      load,
+      amount: '',
+      submitting: false,
+      error: ''
+    });
+  };
+
+  const closeBidModal = () => {
+    if (bidModal.submitting) return;
+    setBidModal({ isOpen: false, load: null, amount: '', submitting: false, error: '' });
+  };
+
+  const handleQuickAdd = (delta) => {
+    const current = Number(bidModal.amount) || 0;
+    setBidModal(prev => ({ ...prev, amount: String(current + delta), error: '' }));
+  };
+
+  const handleBidSubmit = async (e) => {
+    if (e) e.preventDefault();
+    const numericAmount = Number(bidModal.amount);
+    if (!bidModal.amount || isNaN(numericAmount) || numericAmount <= 0) {
+      setBidModal(prev => ({ ...prev, error: 'Please enter a valid amount greater than $0' }));
       return;
     }
 
-    const amount = prompt("Enter your bid amount ($):");
-    if (!amount || isNaN(amount)) return;
-
     try {
+      setBidModal(prev => ({ ...prev, submitting: true, error: '' }));
       const token = localStorage.getItem('driverToken');
-      
-      const res = await axios.post(`/driver-auth/shipments/${shipmentId}/bids`, 
-        { amount: Number(amount) },
+      const res = await axios.post(`/driver-auth/shipments/${bidModal.load._id}/bids`, 
+        { amount: numericAmount },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       if (res.data.success) {
-        alert('Bid placed successfully! (Wait for admin to accept)');
-        fetchLoadsAndTrips();
+        const loadTrack = bidModal.load.trackingNumber;
+        closeBidModal();
+        showToast(
+          'Bid Placed Successfully! 🎯',
+          `Your offer of $${numericAmount.toLocaleString()} for shipment ${loadTrack} has been sent to the dispatcher.`,
+          'success'
+        );
+        fetchLoadsAndTrips(true);
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to place bid');
+      const msg = err.response?.data?.message || 'Failed to place bid. Please try again.';
+      setBidModal(prev => ({ ...prev, submitting: false, error: msg }));
     }
   };
 
@@ -135,32 +198,53 @@ const ExternalDashboard = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.data.success) {
-        fetchLoadsAndTrips();
+        showToast('Trip Status Updated', `Status changed to ${newStatus}`, 'success');
+        fetchLoadsAndTrips(true);
       }
     } catch (err) {
-      alert('Failed to update status');
+      showToast('Update Failed', 'Failed to update trip status', 'error');
     }
   };
 
   const [activeTab, setActiveTab] = useState('board'); // 'board' or 'trips' or 'earnings'
   const [vehicleType, setVehicleType] = useState('Any');
 
-  const reportIssue = async (id) => {
-    const issue = prompt("Describe the issue (e.g., breakdown, heavy traffic):");
-    if (!issue) return;
+  const openIssueModal = (tripId) => {
+    setIssueModal({
+      isOpen: true,
+      tripId,
+      selectedTag: 'Vehicle Breakdown',
+      customText: '',
+      submitting: false
+    });
+  };
+
+  const closeIssueModal = () => {
+    if (issueModal.submitting) return;
+    setIssueModal({ isOpen: false, tripId: null, selectedTag: 'Vehicle Breakdown', customText: '', submitting: false });
+  };
+
+  const handleIssueSubmit = async (e) => {
+    if (e) e.preventDefault();
+    const finalDescription = issueModal.customText.trim()
+      ? `[${issueModal.selectedTag}] ${issueModal.customText.trim()}`
+      : `[${issueModal.selectedTag}] Reported by carrier`;
 
     try {
+      setIssueModal(prev => ({ ...prev, submitting: true }));
       const token = localStorage.getItem('driverToken');
-      const res = await axios.post(`/driver-auth/shipments/${id}/issue`, 
-        { issue },
+      const res = await axios.post(`/driver-auth/shipments/${issueModal.tripId}/issue`, 
+        { issue: finalDescription },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.data.success) {
-        alert('Issue reported successfully. Admin will be notified.');
-        fetchLoadsAndTrips();
+        closeIssueModal();
+        showToast('Incident Reported ⚠️', 'Operations dispatch has been alerted to provide support.', 'info');
+        fetchLoadsAndTrips(true);
       }
     } catch (err) {
-      alert('Failed to report issue');
+      showToast('Report Failed', err.response?.data?.message || 'Failed to report issue', 'error');
+      setIssueModal(prev => ({ ...prev, submitting: false }));
     }
   };
 
@@ -173,10 +257,11 @@ const ExternalDashboard = () => {
         { vehicleType: newType },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      fetchLoadsAndTrips(); // Refresh loads to match new vehicle
+      showToast('Vehicle Filter Updated', `Viewing loads suitable for ${newType}`, 'info');
+      fetchLoadsAndTrips(true);
     } catch (err) {
       console.error('Failed to update vehicle preference:', err);
-      alert('Failed to update vehicle preference');
+      showToast('Error', 'Failed to update vehicle preference', 'error');
     }
   };
 
@@ -278,8 +363,8 @@ const ExternalDashboard = () => {
 
                   {trip.status !== 'Delivered' && (
                     <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-                      <button className="app-btn" onClick={() => reportIssue(trip._id)} style={{ flex: 1, padding: '10px', fontSize: '0.85rem', background: '#ef4444', color: '#fff', border: 'none' }}>
-                        <MessageSquare size={14} style={{ marginRight: '5px', verticalAlign: 'middle' }} /> Report Issue
+                      <button className="app-btn" onClick={() => openIssueModal(trip._id)} style={{ flex: 1, padding: '10px', fontSize: '0.85rem', background: 'linear-gradient(135deg, #ef4444, #b91c1c)', color: '#fff', border: 'none', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                        <MessageSquare size={14} /> Report Issue
                       </button>
                     </div>
                   )}
@@ -393,8 +478,8 @@ const ExternalDashboard = () => {
                     </div>
                   </div>
 
-                  <button className="app-btn" onClick={() => placeBid(load._id)} style={{ padding: '10px', fontSize: '0.9rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
-                    <DollarSign size={16} /> Place Bid
+                  <button className="app-btn" onClick={() => openBidModal(load)} style={{ padding: '12px', fontSize: '0.95rem', fontWeight: 700, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #00e5ff, #0284c7)', color: '#000', border: 'none', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0, 229, 255, 0.25)' }}>
+                    <DollarSign size={18} /> Place Bid
                   </button>
                 </div>
               ))
@@ -562,6 +647,236 @@ const ExternalDashboard = () => {
           <span>Profile</span>
         </button>
       </div>
+
+      {/* IN-APP TOAST NOTIFICATION */}
+      {toast.show && (
+        <div className={`driver-toast driver-toast-${toast.type}`}>
+          {toast.type === 'success' && <CheckCircle2 size={20} color="#10b981" style={{ flexShrink: 0, marginTop: '2px' }} />}
+          {toast.type === 'error' && <AlertTriangle size={20} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />}
+          {toast.type === 'info' && <Info size={20} color="#38bdf8" style={{ flexShrink: 0, marginTop: '2px' }} />}
+          <div style={{ flex: 1 }}>
+            <div style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.85rem' }}>{toast.title}</div>
+            <div style={{ color: '#cbd5e1', fontSize: '0.75rem', marginTop: '2px', lineHeight: '1.3' }}>{toast.message}</div>
+          </div>
+          <button
+            onClick={() => setToast(prev => ({ ...prev, show: false }))}
+            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* IN-APP BID MODAL */}
+      {bidModal.isOpen && (
+        <div className="driver-modal-overlay" onClick={closeBidModal}>
+          <div className="driver-modal-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-handle-bar"></div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: 'rgba(0, 229, 255, 0.15)', border: '1px solid rgba(0, 229, 255, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <DollarSign size={22} color="#00e5ff" />
+                </div>
+                <div>
+                  <h3 style={{ color: '#fff', fontSize: '1.1rem', margin: 0, fontWeight: 700 }}>Place Your Bid</h3>
+                  <p style={{ color: '#94a3b8', fontSize: '0.75rem', margin: 0 }}>{bidModal.load?.trackingNumber}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeBidModal}
+                style={{ background: 'rgba(255, 255, 255, 0.08)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Route Summary */}
+            <div style={{ background: '#0a0f1d', borderRadius: '14px', padding: '12px 14px', marginBottom: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#94a3b8' }}>
+                <span>Origin: <strong style={{ color: '#fff' }}>HQ Warehouse</strong></span>
+                <span>➔</span>
+                <span>Destination: <strong style={{ color: '#fff' }}>Client Hub</strong></span>
+              </div>
+            </div>
+
+            {/* Quick preset buttons */}
+            <div style={{ marginBottom: '12px' }}>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>Quick Presets:</span>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                {[50, 100, 250, 500].map(val => (
+                  <button
+                    key={val}
+                    type="button"
+                    className="quick-bid-chip"
+                    onClick={() => handleQuickAdd(val)}
+                  >
+                    +${val}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Bid Input */}
+            <form onSubmit={handleBidSubmit}>
+              <div style={{ position: 'relative', margin: '14px 0 8px' }}>
+                <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '1.4rem', fontWeight: 800, color: '#00e5ff' }}>$</span>
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  value={bidModal.amount}
+                  onChange={(e) => setBidModal(prev => ({ ...prev, amount: e.target.value, error: '' }))}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px 14px 38px',
+                    fontSize: '1.4rem',
+                    fontWeight: 700,
+                    color: '#fff',
+                    background: '#0a0f1d',
+                    border: bidModal.error ? '1px solid #ef4444' : '1px solid rgba(0, 229, 255, 0.4)',
+                    borderRadius: '14px',
+                    boxShadow: '0 0 20px rgba(0, 229, 255, 0.08)',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  autoFocus
+                />
+              </div>
+
+              {bidModal.error && (
+                <p style={{ color: '#ef4444', fontSize: '0.75rem', margin: '0 0 10px 4px' }}>{bidModal.error}</p>
+              )}
+
+              <p style={{ color: '#64748b', fontSize: '0.72rem', margin: '0 0 16px 4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Sparkles size={12} color="#00e5ff" /> Dispatcher evaluates quote & rating immediately upon submit.
+              </p>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={closeBidModal}
+                  disabled={bidModal.submitting}
+                  style={{ flex: 1, padding: '12px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.06)', color: '#94a3b8', border: '1px solid rgba(255, 255, 255, 0.1)', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={bidModal.submitting}
+                  style={{ flex: 2, padding: '12px', borderRadius: '12px', background: 'linear-gradient(135deg, #00e5ff, #0284c7)', color: '#000', border: 'none', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: '0 4px 15px rgba(0, 229, 255, 0.35)' }}
+                >
+                  {bidModal.submitting ? (
+                    <RefreshCw size={16} className="spin-icon" />
+                  ) : (
+                    <>
+                      <Send size={16} /> Place Bid ${bidModal.amount ? Number(bidModal.amount).toLocaleString() : ''}
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* IN-APP ISSUE REPORT MODAL */}
+      {issueModal.isOpen && (
+        <div className="driver-modal-overlay" onClick={closeIssueModal}>
+          <div className="driver-modal-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-handle-bar"></div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <AlertTriangle size={20} color="#ef4444" />
+                </div>
+                <div>
+                  <h3 style={{ color: '#fff', fontSize: '1.1rem', margin: 0, fontWeight: 700 }}>Report Transit Incident</h3>
+                  <p style={{ color: '#94a3b8', fontSize: '0.75rem', margin: 0 }}>Operations team will be alerted immediately</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeIssueModal}
+                style={{ background: 'rgba(255, 255, 255, 0.08)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Quick incident chips */}
+            <div style={{ marginBottom: '14px' }}>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>Select Incident Type:</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                {['Vehicle Breakdown', 'Heavy Traffic', 'Weather Delay', 'Flat Tire', 'Accident Ahead', 'Customer Absent'].map(tag => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setIssueModal(prev => ({ ...prev, selectedTag: tag }))}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      border: issueModal.selectedTag === tag ? '1px solid #ef4444' : '1px solid rgba(255,255,255,0.1)',
+                      background: issueModal.selectedTag === tag ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.04)',
+                      color: issueModal.selectedTag === tag ? '#ef4444' : '#cbd5e1',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <form onSubmit={handleIssueSubmit}>
+              <div style={{ marginBottom: '16px' }}>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>Additional Incident Details (Optional):</span>
+                <textarea
+                  rows={3}
+                  placeholder="Describe location, delay reason, or current condition..."
+                  value={issueModal.customText}
+                  onChange={(e) => setIssueModal(prev => ({ ...prev, customText: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    fontSize: '0.85rem',
+                    color: '#fff',
+                    background: '#0a0f1d',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '12px',
+                    outline: 'none',
+                    marginTop: '6px',
+                    resize: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={closeIssueModal}
+                  disabled={issueModal.submitting}
+                  style={{ flex: 1, padding: '12px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.06)', color: '#94a3b8', border: '1px solid rgba(255, 255, 255, 0.1)', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={issueModal.submitting}
+                  style={{ flex: 2, padding: '12px', borderRadius: '12px', background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff', border: 'none', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: '0 4px 15px rgba(239, 68, 68, 0.35)' }}
+                >
+                  {issueModal.submitting ? <RefreshCw size={16} className="spin-icon" /> : 'Submit Report'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 };
