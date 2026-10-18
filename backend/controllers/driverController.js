@@ -54,6 +54,38 @@ const createDriver = async (req, res) => {
   try {
     req.body.companyId = req.tenantId
 
+    const phone = req.body.phone ? req.body.phone.trim() : ''
+    const licenseNumber = req.body.licenseNumber ? req.body.licenseNumber.trim() : ''
+    const username = req.body.username ? req.body.username.trim().toLowerCase() : ''
+
+    if (username) {
+      const existingUser = await Driver.findOne({ username })
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: `Username "${username}" is already taken.`
+        })
+      }
+    }
+
+    if (phone || licenseNumber) {
+      const orConditions = []
+      if (phone) orConditions.push({ phone })
+      if (licenseNumber) orConditions.push({ licenseNumber })
+
+      const existingDriver = await Driver.findOne({
+        companyId: req.tenantId,
+        $or: orConditions
+      })
+
+      if (existingDriver) {
+        return res.status(400).json({
+          success: false,
+          message: `A driver with this ${existingDriver.phone === phone ? 'phone number' : 'license number'} already exists in your fleet.`
+        })
+      }
+    }
+
     const driver = await Driver.create(req.body)
 
     res.status(201).json({

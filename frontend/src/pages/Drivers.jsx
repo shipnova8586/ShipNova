@@ -24,6 +24,7 @@ const Drivers = () => {
   });
 
   const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   // Luxury Modal & Toast States
   const [confirmModal, setConfirmModal] = useState({
@@ -88,23 +89,29 @@ const Drivers = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     setFormError('');
+    setSubmitting(true);
     try {
       if (modalMode === 'add') {
         const res = await axios.post('/drivers', formData);
         if (res.data.success) {
+          showToast('Driver Added', `Driver "${formData.name}" added successfully!`, 'success');
           fetchDrivers();
           setIsModalOpen(false);
         }
       } else {
         const res = await axios.put(`/drivers/${currentDriverId}`, formData);
         if (res.data.success) {
+          showToast('Driver Updated', `Driver "${formData.name}" updated successfully!`, 'success');
           fetchDrivers();
           setIsModalOpen(false);
         }
       }
     } catch (err) {
       setFormError(err.response?.data?.message || 'Something went wrong saving driver details.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -362,11 +369,18 @@ const Drivers = () => {
               </div>
 
               <div className="modal-footer">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary" disabled={submitting}>
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  {modalMode === 'add' ? 'Add Driver' : 'Save Changes'}
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                  {submitting ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', display: 'inline-block' }}></span>
+                      <span>{modalMode === 'add' ? 'Adding...' : 'Saving...'}</span>
+                    </span>
+                  ) : (
+                    modalMode === 'add' ? 'Add Driver' : 'Save Changes'
+                  )}
                 </button>
               </div>
             </form>

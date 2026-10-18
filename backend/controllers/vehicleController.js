@@ -54,6 +54,23 @@ const createVehicle = async (req, res) => {
   try {
     req.body.companyId = req.tenantId
 
+    const vehicleNumber = req.body.vehicleNumber ? req.body.vehicleNumber.trim().toUpperCase() : ''
+
+    if (vehicleNumber) {
+      const existingVehicle = await Vehicle.findOne({
+        companyId: req.tenantId,
+        vehicleNumber
+      })
+
+      if (existingVehicle) {
+        return res.status(400).json({
+          success: false,
+          message: `Vehicle with registration number "${vehicleNumber}" already exists in your fleet.`
+        })
+      }
+      req.body.vehicleNumber = vehicleNumber
+    }
+
     // Handle empty driverId
     if (req.body.driverId === '') {
       req.body.driverId = null

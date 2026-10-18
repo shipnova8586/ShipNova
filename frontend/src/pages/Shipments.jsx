@@ -36,6 +36,7 @@ const Shipments = () => {
   });
 
   const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   // Luxury Modal & Toast States
   const [confirmModal, setConfirmModal] = useState({
@@ -152,6 +153,7 @@ const Shipments = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     setFormError('');
 
     // Prepare payload (convert empty strings to nulls for object IDs)
@@ -166,22 +168,27 @@ const Shipments = () => {
       if (!payload.vehicleId) payload.vehicleId = null;
     }
 
+    setSubmitting(true);
     try {
       if (modalMode === 'add') {
         const res = await axios.post('/shipments', payload);
         if (res.data.success) {
+          showToast('Shipment Created', `Shipment #${res.data.data?.trackingNumber || ''} registered successfully!`, 'success');
           fetchData();
           setIsModalOpen(false);
         }
       } else {
         const res = await axios.put(`/shipments/${currentShipment._id}`, payload);
         if (res.data.success) {
+          showToast('Shipment Updated', `Shipment #${currentShipment?.trackingNumber || ''} updated successfully!`, 'success');
           fetchData();
           setIsModalOpen(false);
         }
       }
     } catch (err) {
       setFormError(err.response?.data?.message || 'Error occurred saving shipment details.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -730,11 +737,18 @@ const Shipments = () => {
                 </div>
 
                 <div className="modal-footer">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary" disabled={submitting}>
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary">
-                    {modalMode === 'add' ? 'Register Shipment' : 'Save Details'}
+                  <button type="submit" className="btn btn-primary" disabled={submitting}>
+                    {submitting ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                        <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', display: 'inline-block' }}></span>
+                        <span>{modalMode === 'add' ? 'Registering...' : 'Saving...'}</span>
+                      </span>
+                    ) : (
+                      modalMode === 'add' ? 'Register Shipment' : 'Save Details'
+                    )}
                   </button>
                 </div>
               </form>

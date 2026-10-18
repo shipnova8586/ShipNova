@@ -22,6 +22,7 @@ const Team = () => {
     role: 'dispatcher'
   });
   const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   // Luxury Modal & Toast States
   const [confirmModal, setConfirmModal] = useState({
@@ -85,23 +86,29 @@ const Team = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     setFormError('');
+    setSubmitting(true);
     try {
       if (modalMode === 'add') {
         const res = await axios.post('/users/invite', formData);
         if (res.data.success) {
+          showToast('Invitation Sent', `Invitation sent to ${formData.email}!`, 'success');
           fetchTeam();
           setIsModalOpen(false);
         }
       } else {
         const res = await axios.put(`/users/${currentMemberId}`, { role: formData.role });
         if (res.data.success) {
+          showToast('Role Updated', 'Member role updated successfully!', 'success');
           fetchTeam();
           setIsModalOpen(false);
         }
       }
     } catch (err) {
       setFormError(err.response?.data?.message || 'Something went wrong saving team member details.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -308,11 +315,18 @@ const Team = () => {
               </div>
 
               <div className="modal-footer">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary" disabled={submitting}>
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  {modalMode === 'add' ? 'Send Invite' : 'Save Role'}
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                  {submitting ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', display: 'inline-block' }}></span>
+                      <span>{modalMode === 'add' ? 'Sending...' : 'Saving...'}</span>
+                    </span>
+                  ) : (
+                    modalMode === 'add' ? 'Send Invite' : 'Save Role'
+                  )}
                 </button>
               </div>
             </form>

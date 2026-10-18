@@ -28,6 +28,7 @@ const Vehicles = () => {
   const [maintenanceForm, setMaintenanceForm] = useState({ description: '', cost: '' });
 
   const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   // Luxury Modal & Toast States
   const [confirmModal, setConfirmModal] = useState({
@@ -99,23 +100,29 @@ const Vehicles = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     setFormError('');
+    setSubmitting(true);
     try {
       if (modalMode === 'add') {
         const res = await axios.post('/vehicles', formData);
         if (res.data.success) {
+          showToast('Vehicle Added', `Vehicle "${formData.vehicleNumber}" registered successfully!`, 'success');
           fetchData();
           setIsModalOpen(false);
         }
       } else {
         const res = await axios.put(`/vehicles/${currentVehicleId}`, formData);
         if (res.data.success) {
+          showToast('Vehicle Updated', `Vehicle "${formData.vehicleNumber}" updated successfully!`, 'success');
           fetchData();
           setIsModalOpen(false);
         }
       }
     } catch (err) {
       setFormError(err.response?.data?.message || 'Something went wrong saving vehicle details.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -363,11 +370,18 @@ const Vehicles = () => {
               </div>
 
               <div className="modal-footer">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary" disabled={submitting}>
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  {modalMode === 'add' ? 'Add Vehicle' : 'Save Changes'}
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                  {submitting ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', display: 'inline-block' }}></span>
+                      <span>{modalMode === 'add' ? 'Adding...' : 'Saving...'}</span>
+                    </span>
+                  ) : (
+                    modalMode === 'add' ? 'Add Vehicle' : 'Save Changes'
+                  )}
                 </button>
               </div>
             </form>
